@@ -30,9 +30,15 @@ android {
 
 dependencies {
 
+    implementation(project(":core"))
+    implementation(libs.material)
+    implementation(libs.androidx.lifecycle.viewmodel)
+    implementation(libs.androidx.lifecycle.livedata)
+
+    /*
     implementation(libs.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.espresso.core)*/
 }

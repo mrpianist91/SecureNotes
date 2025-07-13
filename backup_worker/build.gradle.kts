@@ -30,9 +30,12 @@ android {
 
 dependencies {
 
+    implementation(project(":core"))
+    implementation(libs.androidx.work.runtime)
+    /*
     implementation(libs.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.espresso.core)*/
 }
