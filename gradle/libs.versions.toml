@@ -10,9 +10,11 @@ material = "1.12.0"
 
 # Jetpack Architecture Components
 lifecycle = "2.8.3"
+fragment = "1.8.1"
 navigation = "2.7.7"
 room = "2.6.1"
 workmanager = "2.9.0"
+
 
 # Sicurezza
 securityCrypto = "1.1.0-alpha06"
@@ -43,6 +45,7 @@ androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle
 androidx-lifecycle-livedata = { group = "androidx.lifecycle", name = "lifecycle-livedata", version.ref = "lifecycle" }
 
 # Navigation Component
+androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 androidx-navigation-fragment = { group = "androidx.navigation", name = "navigation-fragment", version.ref = "navigation" }
 androidx-navigation-ui = { group = "androidx.navigation", name = "navigation-ui", version.ref = "navigation" }
 

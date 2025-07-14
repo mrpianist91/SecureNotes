@@ -34,15 +34,16 @@ android {
 dependencies {
 
     implementation(project(":core"))
+    implementation(project(":feature_dashboard"))
     implementation(project(":feature_notes"))
     implementation(project(":feature_vault"))
     implementation(project(":backup_worker"))
     implementation(libs.androidx.core)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.androidx.fragment)
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.navigation.ui)
-
     //implementation(libs.activity)
     //implementation(libs.constraintlayout)
 
