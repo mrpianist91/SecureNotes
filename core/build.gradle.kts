@@ -29,8 +29,8 @@ android {
 }
 
 dependencies {
-
-    implementation(libs.androidx.room.runtime)
+    //Per room usiamo "api" in modo che i moduli che dipendono da :core (come :feature_notes) possano vedere anche le classi di Room
+    api(libs.androidx.room.runtime)
     implementation(libs.androidx.lifecycle.livedata)
     annotationProcessor(libs.androidx.room.compiler)
     implementation(libs.sqlcipher.android)

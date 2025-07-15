@@ -32,9 +32,9 @@
     </fragment>
     <fragment
         android:id="@+id/notesListFragment"
-        android:name="com.example.securenotes.notesListFragment"
+        android:name="com.example.securenotes.feature_notes.NotesListFragment"
         android:label="fragment_notes_list"
-        tools:layout="@layout/fragment_notes_list" />
+        tools:layout=".@layout/fragment_notes_list" />
     <fragment
         android:id="@+id/vaultFragment"
         android:name="com.example.securenotes.vaultFragment"
