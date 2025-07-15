@@ -31,14 +31,9 @@ android {
 dependencies {
 
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.lifecycle.livedata)
     annotationProcessor(libs.androidx.room.compiler)
-    //implementation(libs.appcompat)
     implementation(libs.sqlcipher.android)
     implementation(libs.androidx.sqlite)
     implementation(libs.androidx.security.crypto)
-    /*
-    implementation(libs.material)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)*/
 }
