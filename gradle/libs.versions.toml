@@ -29,6 +29,7 @@ espressoCore = "3.6.1"
 
 activity = "1.8.0"
 constraintlayout = "2.2.1"
+lifecycleLivedataCore = "2.9.1"
 
 [libraries]
 # Jetpack Core
@@ -59,13 +60,14 @@ constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayo
 
 # Sicurezza
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
-sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
+sqlcipher-android = { group = "net.zetetic", name = "android-database-sqlcipher", version.ref = "sqlcipher" }
 androidx-sqlite = {group = "androidx.sqlite", name = "sqlite", version.ref = "androidxSqlite"}
 
 # Test
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-lifecycle-livedata-core = { group = "androidx.lifecycle", name = "lifecycle-livedata-core", version.ref = "lifecycleLivedataCore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
