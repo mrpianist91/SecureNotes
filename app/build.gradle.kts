@@ -29,12 +29,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    /** Abilita la classe BuildConfig per questo modulo */
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
 
     implementation(project(":core"))
-    implementation(project(":feature_dashboard"))
     implementation(project(":feature_notes"))
     implementation(project(":feature_vault"))
     implementation(project(":backup_worker"))
@@ -44,6 +47,7 @@ dependencies {
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.navigation.ui)
+    implementation(libs.work.runtime)
     //implementation(libs.activity)
     //implementation(libs.constraintlayout)
 

@@ -31,7 +31,7 @@ android {
 dependencies {
 
     implementation(project(":core"))
-    implementation(libs.androidx.work.runtime)
+    implementation(libs.work.runtime)
     /*
     implementation(libs.appcompat)
     implementation(libs.material)
