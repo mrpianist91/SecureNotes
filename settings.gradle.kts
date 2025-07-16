@@ -21,3 +21,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "SecureNotes"
 include(":app")
+include(":core")
+include(":feature_notes")
+include(":feature_vault")
+include(":backup_worker")
