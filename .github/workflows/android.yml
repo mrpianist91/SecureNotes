@@ -8,7 +8,7 @@ on:
   push:
     branches: [ "main" ]          # build ad ogni push su main
   pull_request:
-    branches: [ "main" ]          # e ad ogni PR diretta su main
+    branches: [ "main" ]          # e ad ogni Pull Request diretta su main
 
 # Evita run duplicati quando si pusha più volte di seguito
 concurrency:
@@ -60,7 +60,7 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 7. Compila, testa, analizza e genera *in un solo colpo* APK + AAB firmati
+      # 7. Compila, testa, analizza e genera in un solo colpo APK + AAB firmati
       - name: Build, Lint & Bundle
         run: ./gradlew build lint bundleRelease --scan --stacktrace
         env: *keystore-env          # passa le variabili al processo Gradle
@@ -74,7 +74,7 @@ jobs:
           path: app/build/outputs/apk/release/app-release.apk
           retention-days: 14        # basta per QA / test interni
 
-      # 8b. Carica anche l'AAB firmato (utile per Play Store)
+      # 8b. Carica anche l'AAB firmato (in realtà utile solo se si pubblica davvero l'app nel Play Store)
       - name: Upload signed AAB
         if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4

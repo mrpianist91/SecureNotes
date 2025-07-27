@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import android.util.Base64;
 
 import androidx.security.crypto.EncryptedSharedPreferences;
-import androidx.security.crypto.MasterKey;
+import androidx.security.crypto.MasterKey; //Android Keystore
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -20,16 +20,16 @@ public class SecurityUtils {
     private static SharedPreferences getEncryptedPrefs(Context context)
             throws GeneralSecurityException, IOException {
 
-        // 1. Costruiamo (o recuperiamo) la chiave principale nel Keystore
+        // 1. Costruiamo (o recuperiamo) la chiave principale nell'Android Keystore
         MasterKey masterKey = new MasterKey.Builder(context)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)   // stessa sicurezza del vecchio AES256_GCM_SPEC
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .build();
 
         // 2. Creiamo le EncryptedSharedPreferences usando la chiave appena ottenuta
         return EncryptedSharedPreferences.create(
                 context,                           // Context
                 PREFERENCES_FILE_NAME,             // Nome file prefs
-                masterKey,                         // MasterKey (non più solo alias)
+                masterKey,                         // MasterKey
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         );

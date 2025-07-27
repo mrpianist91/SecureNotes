@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 <!--meglio evitare i backup sul cloud google per sicurezza...allowBackup=false-->
     <application
+        android:name=".SecureNotesApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
