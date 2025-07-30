@@ -60,6 +60,7 @@ android {
 dependencies {
 
     implementation(project(":core"))
+    implementation(project(":feature_auth"))
     implementation(project(":feature_notes"))
     implementation(project(":feature_vault"))
     implementation(project(":backup_worker"))
