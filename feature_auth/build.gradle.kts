@@ -1,8 +1,9 @@
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
 }
 android {
-    namespace = "com.securennotes.feature.auth" // Assicurarsi che il namespace sia univoco
+    namespace = "com.example.securenotes.feature_auth" // Assicurarsi che il namespace sia univoco
     compileSdk = 34
     defaultConfig {
         minSdk = 26
@@ -28,6 +29,9 @@ android {
          e garantendo la type safety in fase di compilazione.*/
         viewBinding = true // Abilita ViewBinding per semplificare l'accesso alle view
     }
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }
 dependencies {
 // Dipendenza verso il modulo :core per accedere a utility condivise
@@ -46,6 +50,7 @@ dependencies {
     implementation(libs.androidx.navigation.ui)
 // Jetpack Security per BiometricPrompt
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.core.ktx)
 // Dipendenze per i test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

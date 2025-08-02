@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="welcome_icon_description">Icona di un lucchetto</string>
+    <string name="welcome_title">Benvenuto in SecureNotes</string>
+    <string name="welcome_description">La tua privacy, la nostra priorità. Prendi appunti e archivia file in un ambiente sicuro e cifrato.</string>
+    <string name="create_pin_title">Crea il tuo PIN</string>
+    <string name="hint_pin">PIN (min. 6 cifre)</string>
+    <string name="hint_confirm_pin">Conferma PIN</string>
+    <string name="button_create_pin">Crea e Accedi</string>
+    <string name="biometric_prompt_title">Abilita Sblocco Biometrico</string>
+    <string name="biometric_prompt_message">Vuoi usare la tua impronta digitale o il riconoscimento del volto per accedere più velocemente?</string>
+    <string name="biometric_prompt_enable">Abilita</string>
+    <string name="biometric_prompt_skip">Salta</string>
+    <string name="login_title">Bentornato</string>
+    <string name="button_login">Login</string>
+    <string name="button_login_biometric">Usa Sblocco Biometrico</string>
+    <string name="error_pin_required">Il PIN è obbligatorio.</string>
+    <string name="error_pin_too_short">Il PIN deve essere di almeno 6 cifre.</string>
+    <string name="error_pins_do_not_match">I PIN non corrispondono.</string>
+    <string name="error_invalid_pin">PIN errato. Riprova.</string>
+    <string name="error_too_many_attempts">Troppi tentativi falliti. Riprova tra %d secondi.</string>
+    <string name="error_internal_pin_not_found">Errore interno: PIN non
+trovato.</string>
+    <string name="pin_strength_label">Robustezza: %s</string>
+    <string name="pin_strength_very_weak">Molto debole</string>
+    <string name="pin_strength_weak">Debole</string>
+    <string name="pin_strength_medium">Media</string>
+    <string name="pin_strength_strong">Forte</string>
+</resources>
