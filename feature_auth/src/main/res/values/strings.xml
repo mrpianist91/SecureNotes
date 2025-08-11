@@ -26,4 +26,6 @@ trovato.</string>
     <string name="pin_strength_weak">Debole</string>
     <string name="pin_strength_medium">Media</string>
     <string name="pin_strength_strong">Forte</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

@@ -1,42 +1,28 @@
 package com.example.securenotes.feature_auth;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.transition.MaterialSharedAxis;
-import com.example.securenotes.feature_auth.AuthViewModel;
-import com.example.securenotes.feature_auth.R;
 import com.example.securenotes.feature_auth.databinding.FragmentCreatePinBinding;
-import android.text.Editable;
-import android.text.TextWatcher;
-import androidx.core.content.ContextCompat;
-
+import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 public class CreatePinFragment extends Fragment {
-
     private FragmentCreatePinBinding binding;
     private AuthViewModel authViewModel;
-    @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-// Imposta la transizione per quando si arriva dalla pagina precedente (benvenuto)
-        setEnterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, true));
-// Imposta la transizione per quando si torna alla pagina precedente
-        setReturnTransition(new MaterialSharedAxis(MaterialSharedAxis.X, false));
-    }
 
-    @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentCreatePinBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -45,99 +31,85 @@ public class CreatePinFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
-        setupListeners();
-        observeViewModel();
-        setupPinStrengthChecker();//guarda sotto
-    }
 
-    private void setupPinStrengthChecker() {
-        //TextWatcher Un TextWatcher è un "ascoltatore" che ti permette di reagire in tempo reale
-        // a qualsiasi modifica del testo all'interno di un campo di input, come un EditText.
-        binding.pinEditText.addTextChangedListener(new TextWatcher() {
-            //beforeTextChanged() viene chiamato un istante prima che il testo venga modificato.
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            //onTextChanged() viene chiamato quando il testo viene modificato.
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-                if (s!= null) {
-                    authViewModel.calculatePinStrength(s.toString());
+        // Aggiorna barra di robustezza ad ogni digitazione del PIN
+        binding.etPin.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
+            @Override public void afterTextChanged(Editable s) {
+                String pin = s.toString();
+                int strength = authViewModel.calculatePinStrength(pin);
+                binding.strengthBar.setProgress(strength);
+                // Cambia colore/etichetta in base al valore di robustezza
+                if (strength < 34) {
+                    binding.tvStrengthLabel.setText("Debole");
+                    binding.strengthBar.setIndicatorColor(getResources().getColor(android.R.color.holo_red_light));
+                } else if (strength < 67) {
+                    binding.tvStrengthLabel.setText("Media");
+                    binding.strengthBar.setIndicatorColor(getResources().getColor(android.R.color.holo_orange_light));
+                } else {
+                    binding.tvStrengthLabel.setText("Forte");
+                    binding.strengthBar.setIndicatorColor(getResources().getColor(android.R.color.holo_green_light));
                 }
             }
-           // afterTextChanged() viene chiamato dopo che il testo viene modificato.
-            @Override
-            public void afterTextChanged(Editable s) {}
+        });
+
+        // Verifica in tempo reale la corrispondenza tra PIN e Conferma PIN
+        binding.etConfirmPin.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
+            @Override public void afterTextChanged(Editable s) {
+                String pin = binding.etPin.getText().toString();
+                String confirm = s.toString();
+                if (!confirm.equals(pin)) {
+                    binding.etConfirmPin.setError("I PIN non coincidono");
+                } else {
+                    binding.etConfirmPin.setError(null);
+                }
+            }
+        });
+
+        // Pulsante per creare/aggiornare il PIN
+        binding.btnCreatePin.setOnClickListener(v -> {
+            String pin = binding.etPin.getText().toString().trim();
+            String confirm = binding.etConfirmPin.getText().toString().trim();
+            if (pin.length() < 4) {
+                Toast.makeText(requireContext(), "PIN troppo corto (minimo 4 cifre)", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!pin.equals(confirm)) {
+                Toast.makeText(requireContext(), "I PIN inseriti non coincidono", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Salva il PIN in modo sicuro tramite ViewModel
+            authViewModel.createPin(pin);
+        });
+
+        // Osserva l'esito della creazione PIN
+        authViewModel.getPinCreated().observe(getViewLifecycleOwner(), success -> {
+            if (success == null) return;
+            if (success) {
+                NavController nav = NavHostFragment.findNavController(CreatePinFragment.this);
+                if (authViewModel.wasPinExisting()) {
+                    // PIN modificato durante sessione -> invalida sessione e torna al login
+                    Toast.makeText(requireContext(), "PIN modificato con successo. Esegui di nuovo l'accesso.", Toast.LENGTH_LONG).show();
+                    nav.navigate(R.id.action_createPinFragment_to_loginFragment, null,
+                            new NavOptions.Builder().setPopUpTo(R.id.auth_graph, true).build());
+                } else {
+                    // Primo PIN creato (onboarding) -> naviga alla schermata principale
+                    Toast.makeText(requireContext(), "PIN creato! Benvenuto/a su SecureNotes.", Toast.LENGTH_SHORT).show();
+                    nav.navigate(R.id.action_createPinFragment_to_notesListFragment, null,
+                            new NavOptions.Builder().setPopUpTo(R.id.auth_graph, true).build());
+                }
+            } else {
+                Toast.makeText(requireContext(), "Errore durante la creazione del PIN", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
-    private void observeViewModel() {
-
-        //... osservatore per pinCreationState (cioè lo stato della creazione del PIN da parte dell'utente)
-
-        authViewModel.getPinCreationState().observe(getViewLifecycleOwner(), state -> {
-                    switch (state.getStatus()) {
-                        case LOADING:
-// Si potrebbe mostrare un indicatore di caricamento se necessario...setEnabled() indica se il pulsante è cliccabile o meno
-                            binding.createPinButton.setEnabled(false);
-                            break;
-                        case SUCCESS:
-// PIN creato con successo, chiedi all'utente di autenticarsi con la biometria
-                            binding.createPinButton.setEnabled(true);
-                            promptForBiometrics();
-                            break;
-                        case ERROR:
-// Mostra errore di validazione
-                            binding.createPinButton.setEnabled(true);
-                            if (state.getError()!= null) {
-                                binding.pinInputLayout.setError(state.getError());
-                            }
-                            break;
-                        default:
-                            binding.createPinButton.setEnabled(true);
-                            binding.pinInputLayout.setError(null);
-                    }
-                });
-
-// osservatore per la robustezza del PIN
-        authViewModel.getPinStrengthState().observe(getViewLifecycleOwner(), strengthState -> {
-                    binding.pinStrengthIndicator.setProgress(strengthState.getProgress());
-                    binding.pinStrengthIndicator.setIndicatorColor(ContextCompat.getColor(requireContext(), strengthState.getColorRes()));
-                    binding.pinStrengthLabel.setText(getString(R.string.pin_strength_label, strengthState.getLabel(requireContext())));
-                });
-    }
-
-    private void promptForBiometrics() {
-// Controlla se la biometria è disponibile
-        if (authViewModel.isBiometricAuthAvailable(requireContext())) {
-            new MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(R.string.biometric_prompt_title)
-                    .setMessage(R.string.biometric_prompt_message)
-                    .setPositiveButton(R.string.biometric_prompt_enable, (dialog, which) -> {
-                        authViewModel.setBiometricEnabled(true);
-                        navigateToMainApp();
-                    })
-                    .setNegativeButton(R.string.biometric_prompt_skip, (dialog, which) -> {
-                        authViewModel.setBiometricEnabled(false);
-                        navigateToMainApp();
-                    })
-                    .setCancelable(false)
-                    .show();
-        }
-        else {
-// Se la biometria non è disponibile, vai direttamente all'app
-            navigateToMainApp();
-        }
-    }
-    private void navigateToMainApp() {
-// Naviga verso la dashboard principale, pulendo lo stack di autenticazione
-        NavHostFragment.findNavController(this)
-                .navigate(R.id.action_onboardingHostFragment_to_main_app);
-    }
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
     }
 }
-

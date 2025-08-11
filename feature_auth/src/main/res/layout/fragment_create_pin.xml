@@ -1,121 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
-    android:padding="32dp"
-    tools:context=".CreatePinFragment">
+    android:padding="32dp">
 
-<!--"Titolo" della schermata di creazione PIN-->
-    <!--android:textAppearance="?attr/textAppearanceHeadlineMedium". Questo attributo imposta lo stile
-     di un testo, applicando un pacchetto di proprietà predefinite (come dimensione, font e colore)
-      che provengono dal tema corrente dell'app. Nello specifico, applica lo stile "Headline Medium" (Material 3)-->
-    <!--app:layout_constraintVertical_chainStyle="packed" usato all'interno di un ConstraintLayout,
-     definisce come un gruppo di elementi collegati in una "catena verticale" (vertical chain
-     ...in questo caso il "create_pin_title" e il "pin_input_layout") debba distribuirsi
-      nello spazio. Lo stile packed "impacchetta" tutti gli elementi della catena,
-       raggruppandoli insieme al centro dello spazio disponibile.-->
     <TextView
-        android:id="@+id/create_pin_title"
+        android:id="@+id/tv_create_pin"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/create_pin_title"
+        android:text="Crea il tuo PIN di accesso"
         android:textAppearance="?attr/textAppearanceHeadlineMedium"
-        android:textColor="?attr/colorPrimary"
-        app:layout_constraintBottom_toTopOf="@+id/pin_input_layout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed" />
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- style="@style/Widget.Material3.TextInputLayout.OutlinedBox" è una "casella di testo con bordo" (Outlined Box) secondo le linee guida di Material Design 3.
-         android:hint indica il testo inserito (suggerimento) nella casella di testo PRIMA che cominci a digitare
-         app:endIconMode="password_toggle" usato su un TextInputLayout, aggiunge automaticamente un'icona a forma di occhio alla fine del campo di testo.-->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/pin_input_layout"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+    <EditText
+        android:id="@+id/et_pin"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:hint="@string/hint_pin"
-        app:endIconMode="password_toggle"
-        app:layout_constraintBottom_toTopOf="@+id/confirm_pin_input_layout"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:hint="Nuovo PIN"
+        android:inputType="numberPassword"
+        android:maxLength="10"
+        app:layout_constraintTop_toBottomOf="@id/tv_create_pin"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/create_pin_title">
+        app:layout_constraintEnd_toEndOf="parent" />
 
-   <!--android:inputType="numberPassword" indica che la password è solo di tipo numerico, e quindi mostra solo una tastierina numerica e nasconde i valori digitati-->
-    <com.google.android.material.textfield.TextInputEditText
-        android:id="@+id/pin_edit_text"
+    <EditText
+        android:id="@+id/et_confirm_pin"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="Conferma PIN"
+        android:inputType="numberPassword"
+        android:maxLength="10"
+        app:layout_constraintTop_toBottomOf="@id/et_pin"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp" />
+
+    <!-- Barra di robustezza PIN con etichetta -->
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/strength_bar"
+        style="@style/Widget.MaterialComponents.LinearProgressIndicator"
+        android:layout_width="0dp"
+        android:layout_height="8dp"
+        android:layout_marginTop="16dp"
+        android:progress="0"
+        android:trackThickness="8dp"
+        app:layout_constraintTop_toBottomOf="@id/et_confirm_pin"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+    <TextView
+        android:id="@+id/tv_strength_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Robustezza: "
+        app:layout_constraintBaseline_toTopOf="@id/strength_bar"
+        app:layout_constraintStart_toStartOf="@id/strength_bar"
+        android:paddingTop="16dp"/>
+
+    <Button
+        android:id="@+id/btn_create_pin"
+        style="?attr/materialButtonStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="numberPassword"
-        android:maxLength="12" />
-
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/confirm_pin_input_layout"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="@string/hint_confirm_pin"
-        app:endIconMode="password_toggle"
-        app:layout_constraintBottom_toTopOf="@+id/create_pin_button"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:text="Conferma PIN"
+        app:layout_constraintTop_toBottomOf="@id/strength_bar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/pin_input_layout">
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/confirm_pin_edit_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="numberPassword"
-            android:maxLength="12" />
-    </com.google.android.material.textfield.TextInputLayout>
-
-        <TextView
-            android:id="@+id/pin_strength_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/confirm_pin_input_layout"
-            tools:text="Robustezza: Debole" />
-<!--La LinearProgressIndicator è un componente grafico della libreria Material Components
- che visualizza il progresso di un'operazione sotto forma di una barra orizzontale.
- In questo caso serve ad indicare la robustezza del pin inserito.
- tools:progress  è un attributo di anteprima (design-time). Serve a mostrare la LinearProgressIndicator
-  riempita al 33% solo all'interno dell'editor-->
-    <com.google.android.material.progressindicator.LinearProgressIndicator
-            android:id="@+id/pin_strength_indicator"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/pin_strength_label"
-            tools:progress="33" />
-
-<!--android:textAppearance="?attr/textAppearanceLabelLarge" stile predefinito "Label Large"
-del sistema tipografico di Material Design, recuperandolo dal tema corrente dell'app.
-Gli stili "Label" sono preimpostati per i buttons (material)-->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/create_pin_button"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:padding="12dp"
-        android:text="@string/button_create_pin"
-        android:textAppearance="?attr/textAppearanceLabelLarge"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/confirm_pin_input_layout" />
-
-
+        android:layout_marginTop="32dp"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

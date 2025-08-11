@@ -1,7 +1,5 @@
-<!--La SplashFragment è il punto di ingresso dell'app. Il suo unico compito è decidere dove
-    reindirizzare l'utente: al flusso di onboarding (se è il primo avvio) o alla schermata di login (se l'app
-    è già stata configurata)-->
 <?xml version="1.0" encoding="utf-8"?>
+<!--La SplashFragment è il punto di ingresso dell'app. Il suo unico compito è decidere dove reindirizzare l'utente: al flusso di onboarding (se è il primo avvio) o alla schermata di login (se l'appè già stata configurata)-->
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"

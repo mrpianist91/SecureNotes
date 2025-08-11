@@ -54,6 +54,7 @@ android {
     /** Abilita la classe BuildConfig per questo modulo */
     buildFeatures {
         buildConfig = true
+        viewBinding = true
     }
 }
 
@@ -71,6 +72,7 @@ dependencies {
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.navigation.ui)
     implementation(libs.work.runtime)
+    implementation(libs.androidx.lifecycle.process)
     //implementation(libs.activity)
     //implementation(libs.constraintlayout)
 

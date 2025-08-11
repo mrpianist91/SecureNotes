@@ -11,10 +11,10 @@ import com.example.securenotes.core.AppDatabase;
 import com.example.securenotes.core.NoteRepository;
 import com.example.securenotes.core.SecurityUtils;
 
-public class NotesListFragment extends Fragment {
+public class notesListFragment extends Fragment {
     private NotesViewModel viewModel;
 
-    public NotesListFragment() {
+    public notesListFragment() {
 // Costruttore pubblico vuoto richiesto da Fragment
     }
     @Override

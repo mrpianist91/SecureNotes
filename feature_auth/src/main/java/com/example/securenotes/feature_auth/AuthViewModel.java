@@ -1,221 +1,156 @@
-/* SecureNotes – AuthViewModel
- * ------------------------------------------------------------
- * Gestisce: creazione del PIN di fallback, verifica del PIN,
- * lock-out a 5 tentativi, integrazione con BiometricPrompt.
- * Tutte le operazioni crittografiche vengono effettuate su threads secondari.
- */
 package com.example.securenotes.feature_auth;
-import androidx.annotation.NonNull;
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
+
+import android.app.Application;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
-import com.example.securenotes.core.PreferenceManager;
-import com.example.securenotes.core.SecurityUtils;
+import android.util.Base64;
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKey;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
-public final class AuthViewModel extends ViewModel {
-    /* ---- costanti di sicurezza ---- */
-    private static final int MAX_ATTEMPTS = 5;
-    private static final long LOCKOUT_MS = 30_000L; // 30 secondi
-    /* ---- dipendenze ---- */
-    private final PreferenceManager prefs;
+public class AuthViewModel extends AndroidViewModel {
+    // Risultati possibili per il login PIN
+    public enum LoginResult { SUCCESS, INCORRECT_PIN, LOCKED }
+
+    private final MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> pinCreated = new MutableLiveData<>();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final Handler mainH = new Handler(Looper.getMainLooper());
-    /* ---- stato esposto alla UI ---- */
-    private final MutableLiveData<PinCreationState> _createState = new MutableLiveData<>();
-    public LiveData<PinCreationState> createState = _createState;
-    private final MutableLiveData<LoginState> _loginState = new MutableLiveData<>();
-    public LiveData<LoginState> loginState = _loginState;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private int pinFailCount = 0;
+    private boolean wasPinExisting = false;
 
-
-    public AuthViewModel(@NonNull PreferenceManager prefs) {
-        this.prefs = prefs;
+    public AuthViewModel(@NonNull Application application) {
+        super(application);
     }
 
-    /* Getters osservabili dalla UI */
-    public LiveData<PinCreationState> getPinCreationState() { return createState; }
-    public LiveData<LoginState>       getLoginState()       { return loginState; }
+    /** LiveData per osservare l'esito del login (PIN) */
+    public LiveData<LoginResult> getLoginResult() {
+        return loginResult;
+    }
 
+    /** LiveData per osservare l'esito della creazione/modifica PIN */
+    public LiveData<Boolean> getPinCreated() {
+        return pinCreated;
+    }
 
+    /** Indica se un PIN era già registrato (usato per determinare se si tratta di modifica) */
+    public boolean wasPinExisting() {
+        return wasPinExisting;
+    }
+
+    /** Verifica se esiste già un PIN configurato */
     public boolean isPinSet() {
-        return prefs.isPinSet();
-    }
-    public void setBiometricEnabled(boolean enabled) {
-        prefs.setBiometricEnabled(enabled);
-    }
-
-    public boolean isBiometricEnabled() {
-        return prefs.isBiometricEnabled();
-    }
-
-    public void successfulBiometricLogin() {
-        _loginState.setValue(LoginState.SUCCESS);
-    }
-
-    /* ==========================================================
-    =============== CREAZIONE PIN ==========================
-    ========================================================== */
-    public void createPin(@NonNull String pin, @NonNull String confirmPin) {
-        if (pin.isEmpty() || confirmPin.isEmpty()) {
-            _createState.setValue(PinCreationState.EMPTY_FIELDS);
-            return;
-        }
-        if (!pin.equals(confirmPin)) {
-            _createState.setValue(PinCreationState.MISMATCH);
-            return;
-        }
-// Esecuzione off-thread
-        char[] pinChars = pin.toCharArray();
-        executor.execute(() -> {
-            byte[] salt = null;
-            byte[] hash = null;
-            try {
-                salt = SecurityUtils.generateSalt();
-                hash = SecurityUtils.hashPin(pinChars, salt); // hashPin effettua già il wiping di pinChars
-                prefs.savePin(hash, salt);
-                mainH.post(() -> _createState.setValue(PinCreationState.SUCCESS));
-            } catch (Exception e) {
-                mainH.post(() -> _createState.setValue(PinCreationState.ERROR));
-            } finally {
-                if (salt != null) Arrays.fill(salt, (byte) 0);
-                if (hash != null) Arrays.fill(hash, (byte) 0);
-            }
-        });
-    }
-
-    /* ==========================================================
-    ================= LOGIN ================================
-    ========================================================== */
-    public void loginWithPin(@NonNull String pin) {
-        long now = System.currentTimeMillis();
-        long lockedUntil = prefs.getLockoutTimestamp();
-        if (lockedUntil > now) {
-            long remaining = lockedUntil - now;
-            _loginState.setValue(LoginState.locked(remaining));
-            return;
-        }
-        char[] pinChars = pin.toCharArray();
-        executor.execute(() -> {
-            byte[] salt = prefs.getPinSalt();
-            byte[] storedHash = prefs.getPinHash();
-            boolean success = false;
-            try {
-                if (salt != null && storedHash != null) {
-                    success = SecurityUtils.verifyPin(pinChars, storedHash, salt);
-                }
-            } catch (Exception e) {
-                mainH.post(() -> _loginState.setValue(LoginState.failure(0)));
-            }
-            finally {
-                Arrays.fill(pinChars, '\0'); // wipe
-                if (salt != null) Arrays.fill(salt, (byte) 0);
-                if (storedHash != null) Arrays.fill(storedHash, (byte) 0);
-            }
-            if (success) {
-                prefs.resetLoginAttempts();
-                mainH.post(() -> _loginState.setValue(LoginState.SUCCESS));
-            } else {
-// 1. Leggo il contatore corrente dal PreferenceManager
-                int attempts = prefs.getLoginAttempts() + 1;
-// 2. Persiste il nuovo contatore (metodo void)
-                prefs.setLoginAttempts(attempts);
-// 3. Verifica lock-out e notifica la UI
-                if (attempts >= MAX_ATTEMPTS) {
-                    prefs.setLockoutTimestamp(now + LOCKOUT_MS);
-                    prefs.resetLoginAttempts();
-                    mainH.post(() -> _loginState.setValue(LoginState.locked(LOCKOUT_MS)));
-                } else {
-                    mainH.post(() -> _loginState.setValue(LoginState.failure(attempts)));//3
-                }
-            }
-        });
-    }
-
-    /*public void calculatePinStrength(String pin) {
-        _pinStrengthState.setValue(PinStrengthState.calculate(pin));
-    }
-    public boolean isBiometricAuthAvailable(Context context) {
-        BiometricManager biometricManager = BiometricManager.from(context);
-        int canAuthenticate =
-                biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRON
-                        G | BiometricManager.Authenticators.BIOMETRIC_WEAK);
-        return canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS;
-    }*/
-    /* ==========================================================
-    ================= CLEAN-UP =============================
-    ========================================================== */
-    @Override
-    protected void onCleared() {
-        super.onCleared();
-        executor.shutdownNow();
         try {
-            executor.awaitTermination(1, TimeUnit.SECONDS);
-        } catch (InterruptedException ignored) {
+            SharedPreferences prefs = getEncryptedPrefs();
+            return prefs.getString("user_pin", null) != null;
+        } catch (Exception e) {
+            // In caso di errore di lettura, per sicurezza consideriamo non impostato
+            return false;
         }
     }
 
-    /* ==========================================================
-    ================= ENUM / CLASSI DI STATO =================
-    ========================================================== */
-    /* Classi di stato per una gestione pulita della UI
-    class PinCreationState {
-        enum Status { IDLE, LOADING, SUCCESS, ERROR }
-        private final Status status;
-        private final String error;
-        private PinCreationState(Status status, String error) { this.status =
-                status; this.error = error; }
-        public Status getStatus() { return status; }
-        public String getError() { return error; }
-        public static PinCreationState idle() { return new
-                PinCreationState(Status.IDLE, null); }
-        public static PinCreationState loading() { return new
-                PinCreationState(Status.LOADING, null); }
-        public static PinCreationState success() { return new
-                PinCreationState(Status.SUCCESS, null); }
-        public static PinCreationState error(String message) { return new
-                PinCreationState(Status.ERROR, message); }
-    }
-    */
-
-    public enum PinCreationState {
-        SUCCESS, // PIN creato e salvato
-        EMPTY_FIELDS, // uno o entrambi i campi vuoti
-        MISMATCH, // pin ≠ confirmPin
-        ERROR // eccezione (es. I/O, Security)
-    }
-
-    public static final class LoginState {
-        public enum Status {SUCCESS, FAILURE, LOCKED}
-
-        public final Status status;
-        public final int attempts; // usato solo se FAILURE
-        public final long millisLeft; // usato solo se LOCKED
-
-        private LoginState(Status s, int a, long m) {
-            status = s;
-            attempts = a;
-            millisLeft = m;
-        }
-
-        public static LoginState SUCCESS = new LoginState(Status.SUCCESS, 0, 0);
-
-        public static LoginState failure(int atts) {
-
-            return new LoginState(Status.FAILURE, atts, 0);
-        }
-
-        public static LoginState locked(long ms) {
-            return new LoginState(Status.LOCKED, 0, ms);
-        }
-/*
-        public Status getStatus() { return status; }
-        public int getAttempts() { return attempts; }
-        public long getMillisLeft() { return millisLeft; }*/
+    /** Verifica in background il PIN inserito confrontandolo con quello salvato (cifrato) */
+    public void verifyPin(@NonNull String inputPin) {
+        executor.execute(() -> {
+            try {
+                SharedPreferences prefs = getEncryptedPrefs();
+                String savedPin = prefs.getString("user_pin", null);
+                if (savedPin == null) {
+                    // Nessun PIN salvato (non dovrebbe accadere se arriva qui)
+                    mainHandler.post(() -> loginResult.setValue(LoginResult.INCORRECT_PIN));
+                    return;
+                }
+                // Confronto PIN (qui salvato in chiaro nelle prefs cifrate; si potrebbe utilizzare hash per maggior sicurezza)
+                if (inputPin.equals(savedPin)) {
+                    pinFailCount = 0;
+                    mainHandler.post(() -> loginResult.setValue(LoginResult.SUCCESS));
+                } else {
+                    pinFailCount++;
+                    if (pinFailCount >= 5) {
+                        // Dopo 5 tentativi falliti -> LOCKED
+                        pinFailCount = 0;
+                        mainHandler.post(() -> loginResult.setValue(LoginResult.LOCKED));
+                    } else {
+                        mainHandler.post(() -> loginResult.setValue(LoginResult.INCORRECT_PIN));
+                    }
+                }
+            } catch (Exception e) {
+                mainHandler.post(() -> loginResult.setValue(LoginResult.INCORRECT_PIN));
+            }
+        });
     }
 
+    /** Salva in modo sicuro il PIN (durante creazione o modifica) ed esegue eventuali operazioni post-creazione */
+    public void createPin(@NonNull String newPin) {
+        executor.execute(() -> {
+            try {
+                SharedPreferences prefs = getEncryptedPrefs();
+                // Verifica se c'era già un PIN (se sì, siamo in modifica PIN)
+                wasPinExisting = prefs.getString("user_pin", null) != null;
+                // Salvataggio sicuro del PIN (NB: EncryptedSharedPreferences cifra automaticamente il valore)
+                prefs.edit().putString("user_pin", newPin).apply();
+                // Genera/ottiene la chiave biometrica se disponibile, senza mostrare prompt (preparazione)
+                try {
+                    BiometricHelper helper = BiometricHelper.getInstance(AuthViewModel.this.getApplication());
+                    helper.getClass().getDeclaredMethod("getOrCreateBiometricKey").invoke(helper);
+                } catch (Exception ignored) { }
+                // (Facoltativo) Si potrebbe impostare una flag "onboarding completato" qui
+                mainHandler.post(() -> pinCreated.setValue(true));
+            } catch (Exception e) {
+                mainHandler.post(() -> pinCreated.setValue(false));
+            }
+        });
+    }
+
+    /** Valuta empiricamente la robustezza di un PIN in base a lunghezza e pattern (0 = debole, 100 = molto forte) */
+    public int calculatePinStrength(@NonNull String pin) {
+        if (pin.isEmpty()) return 0;
+        int length = pin.length();
+        int score = Math.min(length * 20, 100);  // base score dalla lunghezza (ogni cifra ~20 punti, max 100)
+        // Penalizzazioni per pattern deboli:
+        boolean allSame = true;
+        boolean sequential = true;
+        for (int i = 1; i < pin.length(); i++) {
+            if (pin.charAt(i) != pin.charAt(0)) {
+                allSame = false;
+            }
+            if (pin.charAt(i) != pin.charAt(i-1) + 1) {
+                sequential = false;
+            }
+        }
+        if (allSame || sequential) {
+            // Se tutti i numeri uguali (es. 1111) o sequenziali (es. 1234) -> riduce robustezza
+            score = Math.min(score, 40);
+        }
+        if (length < 4) {
+            score = 0;  // PIN troppo corto
+        } else if (length == 4 && (allSame || sequential)) {
+            score = 20; // PIN 4 cifre debole
+        }
+        return score;
+    }
+
+    /** Ottiene le SharedPreferences cifrate (usando MasterKey nel Keystore) */
+    private SharedPreferences getEncryptedPrefs() throws GeneralSecurityException, IOException {
+        MasterKey masterKey = new MasterKey.Builder(getApplication())
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build();
+        return EncryptedSharedPreferences.create(
+                getApplication(),
+                "secure_notes_prefs",       // stesso file usato in SecurityUtils per coerenza
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        );
+    }
 }

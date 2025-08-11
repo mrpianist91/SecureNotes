@@ -51,6 +51,9 @@ dependencies {
 // Jetpack Security per BiometricPrompt
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.core.ktx)
+    //root-detection
+    implementation(libs.rootbeer)
+
 // Dipendenze per i test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
