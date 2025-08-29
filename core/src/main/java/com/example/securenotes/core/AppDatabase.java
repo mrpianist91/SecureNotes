@@ -30,36 +30,3 @@ public abstract class AppDatabase extends RoomDatabase {
     }
 }
 
-/*
-@Database(entities = { Note.class, VaultFile.class }, version = 1, exportSchema = false)
-
-public abstract class AppDatabase extends RoomDatabase {
-
-    public abstract NoteDao noteDao();
-    public abstract VaultFileDao vaultFileDao();
-
-    private static volatile AppDatabase INSTANCE;
-
-    public static AppDatabase getDatabase(Context context, char[] passphraseChars) {
-        if (INSTANCE == null) {
-            synchronized (AppDatabase.class) {
-                if (INSTANCE == null) {
-                    byte[] passphrase = SQLiteDatabase.getBytes(passphraseChars);
-                    Arrays.fill(passphraseChars, '\0');
-
-                    SupportFactory factory = new SupportFactory(passphrase);
-                    INSTANCE = Room.databaseBuilder(
-                                    context.getApplicationContext(),
-                                    AppDatabase.class,
-                                    "secure_notes.db")
-                            .openHelperFactory(factory)
-                            .setJournalMode(JournalMode.TRUNCATE)
-                            .build();
-
-                    Arrays.fill(passphrase, (byte) 0);
-                }
-            }
-        }
-        return INSTANCE;
-    }
-}*/

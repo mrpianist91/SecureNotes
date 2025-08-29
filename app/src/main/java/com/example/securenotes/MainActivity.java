@@ -29,7 +29,6 @@ import androidx.work.WorkRequest;
 public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;     // ViewBinding
-    //private SessionObserver sessionObserver;
 
     // --------------------------------------------------------------------- //
     // Life-cycle
@@ -47,20 +46,6 @@ public class MainActivity extends AppCompatActivity {
                 (NavHostFragment) getSupportFragmentManager()
                         .findFragmentById(R.id.fragmentContainerView);
         NavController navController = navHost.getNavController();
-
-
-
-        // ----- Timeout di sessione ----------------------------------------
-        //Il tempo di sessione va salvato nelle EncryptedSharedPreference per permettere all'utente di stabilire il valore di timeout che preferisce.
-        /*PreferenceManager prefs = new PreferenceManager(this);
-        // (3 min default, range 3-10 min definito nelle impostazioni)
-        long timeoutMs = prefs.getSessionTimeoutMs();
-        if (timeoutMs < 180_000L || timeoutMs > 600_000L) {
-            timeoutMs = 180_000L;
-        }
-        sessionObserver = new SessionObserver(navController, timeoutMs);
-        ProcessLifecycleOwner.get().getLifecycle().addObserver(sessionObserver);
-         */
 
         // -------- avvio timer di sessione al primo LOGIN --------
         AuthViewModel authVm = new ViewModelProvider(this).get(AuthViewModel.class);
@@ -83,16 +68,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onUserInteraction() {
         super.onUserInteraction();
-        /* azzera il timer del SessionObserver ad ogni interazione dell’utente
-        SessionObserver.resetSessionTimer();*/
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        /*if (sessionObserver != null) {
-            ProcessLifecycleOwner.get().getLifecycle().removeObserver(sessionObserver);
-        }*/
         binding = null;
     }
 

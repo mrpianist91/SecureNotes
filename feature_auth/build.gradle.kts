@@ -4,7 +4,7 @@ plugins {
 }
 android {
     namespace = "com.example.securenotes.feature_auth" // Assicurarsi che il namespace sia univoco
-    compileSdk = 34
+    compileSdk = 35
     defaultConfig {
         minSdk = 26
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.androidx.navigation.ui)
 // Jetpack Security per BiometricPrompt
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.core.ktx)
     //root-detection
     implementation(libs.rootbeer)

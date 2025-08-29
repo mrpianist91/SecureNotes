@@ -35,14 +35,7 @@ import com.example.securenotes.feature_auth.R;
 import androidx.navigation.NavOptions;
 
 public class SessionObserver implements Application.ActivityLifecycleCallbacks, DefaultLifecycleObserver {
-    /*private static final long BACKGROUND_INTERVAL_MS = 10000;  // 10 secondi
-    private static int startedCount = 0;
-    private static long lastBackgroundTime = 0;
-    private static boolean sessionInvalidated = false;
-    private static NavController navController;      // riferimento al NavController principale
-    private static Handler timeoutHandler;    //  il gestore del timer interno al SessionObserver, crea un MessageQueue che verrà associato al thread principale grazie al Looper
-    private static Runnable timeoutRunnable;  // COSA eseguire quando scade il timer
-    private static long sessionTimeoutMs;   */         // durata timeout per "inattività" in millisecondi
+    // durata timeout per "inattività" in millisecondi
     /* ───────────────────────── configurabili ───────────────────────── */
     private static long     sessionTimeoutMs;          // es. 180 000 (3 min)
     private static boolean      inForeground;      // # Activity in onStart()
@@ -61,11 +54,7 @@ public class SessionObserver implements Application.ActivityLifecycleCallbacks, 
         timeoutRunnable = () -> {
             // Invalida la sessione per timeout e va all'autenticazione
             sessionRunning = false;
-            sessionInvalidated = true; // se app è in background navigeremo al ritorno
-            /*if (navController != null) {
-                navController.navigate(R.id.auth_nav, null,
-                        new androidx.navigation.NavOptions.Builder().setPopUpTo(com.example.securenotes.R.id.nav_graph, true).build());
-            }*/
+            sessionInvalidated = true; // se app è in background navigheremo al ritorno
             navigateToAuthIfPossible();
         };
         inForeground = false;
@@ -108,34 +97,9 @@ public class SessionObserver implements Application.ActivityLifecycleCallbacks, 
         timeoutHandler.postDelayed(timeoutRunnable, sessionTimeoutMs); //avvia il nuovo timer
     }
 
-    /** Invalida forzatamente la sessione (es. logout manuale o cambio PIN) */
-    /*public static void invalidateSession() {
-        sessionInvalidated = true;
-        if (navController != null) {
-            navController.navigate(R.id.auth_graph, null,
-                    new androidx.navigation.NavOptions.Builder().setPopUpTo(R.id.nav_graph, true).build());
-        }
-    }*/
-
     @Override
     public void onActivityStarted(@NonNull Activity activity) {
-        /*if (startedCount == 0 && lastBackgroundTime > 0) {
-            // L'app sta tornando in foreground
-            long backgroundDuration = System.currentTimeMillis() - lastBackgroundTime;
-            if (backgroundDuration > BACKGROUND_INTERVAL_MS) {
-                sessionInvalidated = true;
-            }
-            lastBackgroundTime = 0;
-        }
-        startedCount++;
-        // Se l'attività inizia e la sessione è marcata invalida, naviga al login
-        if (sessionInvalidated && navController != null) {
-            sessionInvalidated = false;
-            navController.navigate(R.id.auth_graph, null,
-                    new androidx.navigation.NavOptions.Builder().setPopUpTo(R.id.nav_graph, true).build());
-        }
-        // Avvia/Reset del timer di inattività quando l'attività diventa visibile
-        resetSessionTimer();*/
+
         if (!inForeground) {
             inForeground = true; //l'app torna visibile
             // Se la sessione è invalida, naviga al login
@@ -145,15 +109,6 @@ public class SessionObserver implements Application.ActivityLifecycleCallbacks, 
 
     @Override
     public void onActivityStopped(@NonNull Activity activity) {
-        /*startedCount--;
-        if (startedCount == 0) {
-            // L'app è andata in background
-            lastBackgroundTime = System.currentTimeMillis();
-            // Ferma il timer di inattività mentre in background
-            if (timeoutHandler != null) {
-                timeoutHandler.removeCallbacks(timeoutRunnable);
-            }
-        }*/
         inForeground=false;
         if (sessionRunning) {
             /* App in background → scadenza immediata */

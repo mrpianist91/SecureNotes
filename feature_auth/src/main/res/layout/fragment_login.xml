@@ -11,25 +11,27 @@
         android:id="@+id/tv_status"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Autenticazione richiesta"
+        android:text="@string/login_title"
         android:textAppearance="?attr/textAppearanceHeadlineMedium"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Pulsante fallback "Usa PIN" (visibile solo se l'utente vuole passare a PIN) -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_use_pin"
         style="?attr/materialButtonOutlinedStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Usa PIN"
+        android:text="@string/action_use_pin"
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/tv_status"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBaseline_toBaselineOf="@id/tv_status"/>
+        />
 
-    <!-- Gruppo di viste per inserimento PIN -->
+    <!-- Gruppo di views per inserimento PIN
+     NB app:endIconMode=password_toggle mostra l'occhio per la visione in chiaro della pass inserita
+     l'android:imeOptions="actionDone" invece inserisce il "Fatto" al posto di "Invio" nella tastiera virtuale di isnerimento Pin-->
     <LinearLayout
         android:id="@+id/pinGroup"
         android:layout_width="0dp"
@@ -41,22 +43,29 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:paddingTop="24dp">
 
-        <EditText
-            android:id="@+id/et_pin"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_pin"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="PIN"
-            android:maxLength="10"
-            android:inputType="numberPassword"
-            android:importantForAutofill="no" />
+            android:hint="@string/hint_pin"
+            app:endIconMode="password_toggle">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_pin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionDone"
+                android:inputType="numberPassword"
+                android:maxLength="10"
+                android:importantForAutofill="no"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_login"
             style="?attr/materialButtonStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Accedi"
+            android:text="@string/button_login"
             android:layout_marginTop="16dp" />
     </LinearLayout>
 

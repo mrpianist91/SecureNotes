@@ -20,8 +20,6 @@ public class notesListFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-// Inflate del layout per questo fragment. Sostituire 'R.layout.fragment_notes_list' con il proprio file di layout.
-        //return inflater.inflate(R.layout.fragment_notes_list,  container, false);
         return new View(getContext()); // Placeholder view
     }
     @Override
@@ -30,7 +28,7 @@ public class notesListFragment extends Fragment {
 
         // --- Inizializzazione delle dipendenze (temporanea) ---
         // In un'app reale, questo verrebbe gestito da un framework di Dependency Injection come Hilt.
-        byte [] passphrase = SecurityUtils.getOrCreateDatabasePassphrase(requireContext());
+        byte [] passphrase = SecurityUtils.generateRandom(32);
         AppDatabase database = AppDatabase.getDatabase(requireContext(), passphrase);
         NoteRepository repository = new NoteRepositoryImpl(database.noteDao());
         NotesViewModelFactory factory = new NotesViewModelFactory(repository);

@@ -43,7 +43,7 @@ public class OnBoardingFragment extends Fragment {
                              ViewGroup container,
                              Bundle savedInstanceState) {
 
-        binding = FragmentOnboardingHostBinding.inflate(inflater, container, false);
+        binding = FragmentOnboardingBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
 
@@ -57,41 +57,35 @@ public class OnBoardingFragment extends Fragment {
         authViewModel = new ViewModelProvider(requireActivity())
                 .get(AuthViewModel.class);
 
-        /* Se l’utente ha già creato un PIN → salta l’onboarding */
-        if (authViewModel.isPinSet()) {
-            NavHostFragment.findNavController(this)
-                    .navigate(R.id.action_onboardingHostFragment_to_loginFragment);
-            return;
-        }
-
         /* -- Inizializza il ViewPager2 e l’adapter -- */
         pagerAdapter = new OnboardingPagerAdapter(this);
         binding.viewPagerOnboarding.setAdapter(pagerAdapter);
 
         /* -- Setup pulsanti Skip / Next -- */
         NavController navController = NavHostFragment.findNavController(this);
-
+// se l'utente fa "Skip", si va alla creazione del pin
         binding.btnSkip.setOnClickListener(v ->
-                navController.navigate(R.id.action_onboardingHostFragment_to_createPinFragment));
-
+                navController.navigate(R.id.action_onBoardingFragment_to_createPinFragment));
+//se l'utente preme "Next", si passa alla slide successiva, o, se è l'ultima slide, si va alla creazione del pin
         binding.btnNext.setOnClickListener(v -> {
             int cur = binding.viewPagerOnboarding.getCurrentItem();
             if (cur < pagerAdapter.getItemCount() - 1) {
                 binding.viewPagerOnboarding.setCurrentItem(cur + 1);
             } else {
-                navController.navigate(R.id.action_onboardingHostFragment_to_createPinFragment);
+                navController.navigate(R.id.action_onBoardingFragment_to_createPinFragment);
             }
         });
 
         /* -- Cambia testo “Avanti” → “Inizia” all’ultima slide -- */
+        //--se la pagina/slide visualizzata è l'ultima allora cambia il testo di btnNext "Avanti" con "Inizia", e fa sparire il btnSkip
+        //--il controllo viene fatto tramite indice/position della slide mostrata
         binding.viewPagerOnboarding.registerOnPageChangeCallback(
                 new ViewPager2.OnPageChangeCallback() {
                     @Override
                     public void onPageSelected(int position) {
                         super.onPageSelected(position);
                         boolean last = position == pagerAdapter.getItemCount() - 1;
-                        binding.btnNext.setText(last ? R.string.onboarding_start
-                                : R.string.onboarding_next);
+                        binding.btnNext.setText(last ? R.string.onboarding_start : R.string.onboarding_next);
                         binding.btnSkip.setVisibility(last ? View.GONE : View.VISIBLE);
                     }
                 });
@@ -125,7 +119,7 @@ public class OnBoardingFragment extends Fragment {
         @NonNull
         @Override
         public Fragment createFragment(int position) {
-            // Crea un fragment per la pagina di onboarding specifica
+            // Crea un fragment per la pagina (slide) di onboarding specifica
             OnboardingPageFragment page = new OnboardingPageFragment();
             Bundle args = new Bundle();
             args.putInt("position", position);
