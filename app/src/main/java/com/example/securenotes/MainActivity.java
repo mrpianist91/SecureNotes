@@ -1,6 +1,8 @@
 package com.example.securenotes;
 
 import android.os.Bundle;
+import android.os.SystemClock;
+import android.util.Log;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ProcessLifecycleOwner;
@@ -35,7 +37,9 @@ public class MainActivity extends AppCompatActivity {
     // --------------------------------------------------------------------- //
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d("A", "Main.onCreate START " + this + " t=" + SystemClock.uptimeMillis());
         super.onCreate(savedInstanceState);
+        Log.d("A", "Main.onCreate END   " + this + " t=" + SystemClock.uptimeMillis());
 
         // ----- ViewBinding -------------------------------------------------
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -47,15 +51,21 @@ public class MainActivity extends AppCompatActivity {
                         .findFragmentById(R.id.fragmentContainerView);
         NavController navController = navHost.getNavController();
 
+        // ----- Collega qui il SessionObserver (ora il NavHost esiste) -----
+        long timeoutMs = new PreferenceManager(this)
+                .getSessionTimeoutMs(3 * 60 * 1000L); // default 3 minuti in ms
+        ProcessLifecycleOwner.get()
+                .getLifecycle()
+                .addObserver(new SessionObserver(navController, timeoutMs));
         // -------- avvio timer di sessione al primo LOGIN --------
-        AuthViewModel authVm = new ViewModelProvider(this).get(AuthViewModel.class);
 
-        authVm.getLoginResult().observe(this, result -> {
-            if (result == LoginResult.SUCCESS) {
-                navController.navigate(R.id.notesListFragment); //vado alla dashboard in seguito al login (SUCCESS)
-                long minutesMs = new PreferenceManager(this).getSessionTimeoutMs(3); // 3 di default
-                SessionObserver.startSession(minutesMs);
-                authVm.getLoginResult().removeObservers(this);   // osserva una sola volta
+
+        // Avvia/riavvia la sessione quando si "atterra" nella schermata delle note,
+        // indipendentemente dal percorso (PIN o biometria).
+        navController.addOnDestinationChangedListener((controller, destination, args) -> {
+            if (destination.getId() == R.id.notesListFragment) {
+                long toMs = new PreferenceManager(this).getSessionTimeoutMs(3 * 60 * 1000L);
+                SessionObserver.startSession(toMs);
             }
         });
 
