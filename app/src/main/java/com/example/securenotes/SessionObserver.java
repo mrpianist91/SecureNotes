@@ -47,9 +47,9 @@ public class SessionObserver implements Application.ActivityLifecycleCallbacks, 
     private static boolean  sessionInvalidated    = false; // scatta dopo timeout
     private static NavController navController;        // fornito dal costruttore
 
-    public SessionObserver(NavController mainNavController, long timeoutMinutes) {
+    public SessionObserver(NavController mainNavController, long timeoutMs) {
         navController = mainNavController;
-        sessionTimeoutMs = timeoutMinutes * 60 * 1000;
+        sessionTimeoutMs = timeoutMs;
         timeoutHandler = new Handler(Looper.getMainLooper()); // Un Looper è un oggetto che permette al thread (Runnable) di diventare event-driven tramite MessageQueue. In pratica il Looper estrae i messaggi dalla queue e li esegue. Esiste già un Looper associato al main thread dal framework. Con getMainLooper() lo otteniamo e associamo all'Handler.
         timeoutRunnable = () -> {
             // Invalida la sessione per timeout e va all'autenticazione

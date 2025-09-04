@@ -3,6 +3,8 @@ package com.example.securenotes;
 import android.app.Activity;
 import android.app.Application;
 import android.os.Bundle;
+import android.os.SystemClock;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,12 +21,11 @@ import com.example.securenotes.core.PreferenceManager;
  *  • Dynamic Color (Material You)
  *  • Registrazione globale di SessionObserver
  */
-public class SecureNotesApplication extends Application
-        implements Application.ActivityLifecycleCallbacks {
+public class SecureNotesApplication extends Application {
 
-    private static final long DEFAULT_TIMEOUT_MS = 3 * 60 * 1000L;  // 3 minuti
-    private SessionObserver sessionObserver;
-    private boolean observerRegistered = false;                     // evita doppie registrazioni
+    //private static final long DEFAULT_TIMEOUT_MS = 3 * 60 * 1000L;  // 3 minuti
+    //private SessionObserver sessionObserver;
+    //private boolean observerRegistered = false;                     // evita doppie registrazioni
 
     @Override
     public void onCreate() {
@@ -35,16 +36,18 @@ public class SecureNotesApplication extends Application
 
         // un metodo di Application che ti permette di iscriverti a tutti gli eventi (ON_CREATE, ON_START, ON_RESUMED, ON_PAUSE, ON_STOP, ON_DESTROY) di lifecycle di ogni Activity dell’app.
         // Ci serve sapere quando viene creata la MainActivity
-        registerActivityLifecycleCallbacks(this);
+        //registerActivityLifecycleCallbacks(this);
     }
 
     /* --------------------------------------------------------------------- */
     /* ActivityLifecycleCallbacks – ci interessa solo onActivityCreated      */
     /* --------------------------------------------------------------------- */
 
-    @Override
+   /* @Override
     public void onActivityCreated(@NonNull Activity activity,
                                   @Nullable Bundle savedInstanceState) {
+
+        Log.d("A", "App.onActivityCreated for " + activity + " t=" + SystemClock.uptimeMillis());
 
         if (observerRegistered) return;                    // già fatto
 
@@ -76,14 +79,14 @@ public class SecureNotesApplication extends Application
                 observerRegistered = true;                // una volta basta
             }
         }
-    }
+    }*/
 
     /* ----- Metodi obbligatori vuoti -------------------------------------- */
 
-    @Override public void onActivityStarted(@NonNull Activity activity) {}
+   /* @Override public void onActivityStarted(@NonNull Activity activity) {}
     @Override public void onActivityResumed(@NonNull Activity activity) {}
     @Override public void onActivityPaused(@NonNull Activity activity) {}
     @Override public void onActivityStopped(@NonNull Activity activity) {}
     @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {}
-    @Override public void onActivityDestroyed(@NonNull Activity activity) {}
+    @Override public void onActivityDestroyed(@NonNull Activity activity) {}*/
 }
