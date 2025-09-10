@@ -1,52 +1,89 @@
-#.github/workflows/android.yml
+# .github/workflows/android.yml
 name: Android CI
 
+# ──────────────────────────
+# Eventi che attivano il workflow
+# ──────────────────────────
 on:
-   push:
-        branches: [ "main" ]
-   pull_request:
-        branches: [ "main" ]
+  push:
+    branches: [ "main" ]          # build ad ogni push su main
+  pull_request:
+    branches: [ "main" ]          # e ad ogni Pull Request diretta su main
+
+# Evita run duplicati quando si pusha più volte di seguito
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read                  # principio del privilegio minimo
 
 jobs:
-   build:
-        runs-on: ubuntu-latest
-        steps:
-  # 1. Preleva il codice
-        - name: Checkout repository
-          uses: actions/checkout@v4
-  # 2. Installa l’SDK Android (platform-tools, build-tools, emulator ecc.)
-        - name: Set up Android SDK
-          uses: android-actions/setup-android@v3
-  # 3. Imposta il JDK 17
-        - name: Set up JDK 17
-          uses: actions/setup-java@v4
-          with:
-               java-version: '17'
-               distribution: 'temurin'
-  #4. Salva la cartella di cache di Gradle (~/.gradle/caches + wrapper) tra un job e l’altro. Al
-  # run successivo GitHub Actions riutilizza quelle dipendenze anziché riscaricarle da Maven
-  #Central/Google, riducendo di parecchi minuti (e banda) il tempo di build.
-        - name: Cache Gradle packages
-          uses: actions/cache@v4
-          with:
-               path: |
-                    ~/.gradle/caches
-                    ~/.gradle/wrapper
-               key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*','**/gradle-wrapper.properties') }}
-               restore-keys: |
-                            ${{ runner.os }}-gradle-
-        - name: Grant execute permission for gradlew
-          run: chmod +x gradlew
-        - name: Build with Gradle
-          run: ./gradlew build
-        - name: Run lint check
-          run: ./gradlew lint
-        - name: Test Debug UnitTest
-          run: ./gradlew testDebugUnitTest
-        - name: Assemble Release APK
-          run: ./gradlew assembleRelease
-        - name: Upload Release APK
-          uses: actions/upload-artifact@v4
-          with:
-               name: app-release
-               path: app/build/outputs/apk/release/app-release-unsigned.apk
+  build:
+    runs-on: ubuntu-latest        # runner GitHub ospitato
+    timeout-minutes: 20           # stop dopo 20′ se qualcosa va storto
+
+    # Variabili d'ambiente comuni (→ anchor YAML)
+    env: &keystore-env
+      KEYSTORE_FILE: app/keystore.jks
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS:        ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD:     ${{ secrets.KEY_PASSWORD }}
+
+    steps:
+      # 1. Preleva il codice
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Installa l’SDK Android (platform-tools, build-tools, emulator, ecc.)
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 3. Imposta il JDK 17 (richiesto da AGP 8+)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # 4. Setup Gradle → cache + wrapper-validation
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      # 5. Decodifica il keystore (solo su push: nei fork i secret non ci sono)
+      - name: Decode keystore
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $KEYSTORE_FILE
+
+      # 6. Rende eseguibile il wrapper
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # 7. Compila, testa, analizza e genera in un solo colpo APK + AAB firmati
+      - name: Build, Lint & Bundle
+        run: ./gradlew build lint bundleRelease --scan --stacktrace
+        env: *keystore-env          # passa le variabili al processo Gradle
+
+      # 8a. Carica l’APK firmato (solo su push)
+      - name: Upload signed APK
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-signed
+          path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 14        # basta per QA / test interni
+
+      # 8b. Carica anche l'AAB firmato (in realtà utile solo se si pubblica davvero l'app nel Play Store)
+      - name: Upload signed AAB
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-bundle-signed
+          path: app/build/outputs/bundle/release/app-release.aab
+          retention-days: 14
+
+      # 9. Pulisce il keystore dal runner (sempre, anche se il job fallisce)
+      - name: Cleanup keystore
+        if: always()
+        run: rm -f $KEYSTORE_FILE

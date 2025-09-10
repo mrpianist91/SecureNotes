@@ -11,17 +11,15 @@ import com.example.securenotes.core.AppDatabase;
 import com.example.securenotes.core.NoteRepository;
 import com.example.securenotes.core.SecurityUtils;
 
-public class NotesListFragment extends Fragment {
+public class notesListFragment extends Fragment {
     private NotesViewModel viewModel;
 
-    public NotesListFragment() {
+    public notesListFragment() {
 // Costruttore pubblico vuoto richiesto da Fragment
     }
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-// Inflate del layout per questo fragment. Sostituire 'R.layout.fragment_notes_list' con il proprio file di layout.
-        //return inflater.inflate(R.layout.fragment_notes_list,  container, false);
         return new View(getContext()); // Placeholder view
     }
     @Override
@@ -30,7 +28,7 @@ public class NotesListFragment extends Fragment {
 
         // --- Inizializzazione delle dipendenze (temporanea) ---
         // In un'app reale, questo verrebbe gestito da un framework di Dependency Injection come Hilt.
-        byte [] passphrase = SecurityUtils.getOrCreateDatabasePassphrase(requireContext());
+        byte [] passphrase = SecurityUtils.generateRandom(32);
         AppDatabase database = AppDatabase.getDatabase(requireContext(), passphrase);
         NoteRepository repository = new NoteRepositoryImpl(database.noteDao());
         NotesViewModelFactory factory = new NotesViewModelFactory(repository);

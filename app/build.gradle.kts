@@ -15,16 +15,38 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+    signingConfigs {
+        create("release") {
+            // Leggiamo le variabili d'ambiente di GitHub
+            val ksFile = System.getenv("KEYSTORE_FILE")
+            val ksPassword = System.getenv("KEYSTORE_PASSWORD")
+            val ksAlias = System.getenv("KEY_ALIAS")
+            val ksKeyPassword = System.getenv("KEY_PASSWORD")
+
+            // Applichiamo la configurazione solo se le variabili sono presenti (cioè in CI)
+            if (ksFile != null && ksPassword != null && ksAlias != null) {
+                storeFile = file(ksFile)
+                storePassword = ksPassword
+                keyAlias = ksAlias
+                keyPassword = ksKeyPassword
+            }
+        }
+    }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            // Aggiungi shrinkResources come da specifiche
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Collega la configurazione di firma
+            signingConfig = signingConfigs.getByName("release")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -32,12 +54,14 @@ android {
     /** Abilita la classe BuildConfig per questo modulo */
     buildFeatures {
         buildConfig = true
+        viewBinding = true
     }
 }
 
 dependencies {
 
     implementation(project(":core"))
+    implementation(project(":feature_auth"))
     implementation(project(":feature_notes"))
     implementation(project(":feature_vault"))
     implementation(project(":backup_worker"))
@@ -48,6 +72,7 @@ dependencies {
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.navigation.ui)
     implementation(libs.work.runtime)
+    implementation(libs.androidx.lifecycle.process)
     //implementation(libs.activity)
     //implementation(libs.constraintlayout)
 

@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.livedata)
+    implementation(libs.androidx.fragment)
     /*
     implementation(libs.appcompat)
     implementation(libs.material)

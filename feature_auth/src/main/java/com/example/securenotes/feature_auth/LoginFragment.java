@@ -1,0 +1,287 @@
+package com.example.securenotes.feature_auth;
+
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+import android.util.Pair;
+import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
+import androidx.navigation.fragment.NavHostFragment;
+
+import com.example.securenotes.core.SecurityUtils;
+import com.example.securenotes.feature_auth.databinding.FragmentLoginBinding;
+import com.scottyab.rootbeer.RootBeer;  // Libreria per rilevare il root (aggiungere dipendenza RootBeer)
+
+import java.security.GeneralSecurityException;
+
+import javax.crypto.Cipher;
+
+
+public class LoginFragment extends Fragment {
+    private FragmentLoginBinding binding;
+    private AuthViewModel authViewModel;
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private CountDownTimer lockTimer;
+
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        binding = FragmentLoginBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
+        Log.d("LoginFragment", "VM id=" + System.identityHashCode(authViewModel));
+        // Se esiste già un lock persistito (da tentativi precedenti), riflettilo subito in UI
+        startLockCountdown(authViewModel.getLockRemainingMillis());
+        // Controllo di sicurezza: blocca l'accesso se il dispositivo è rootato
+        RootBeer rootBeer = new RootBeer(requireContext());
+        if (rootBeer.isRooted()) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Dispositivo non sicuro")
+                    .setMessage("Il dispositivo risulta rootato. L'app verrà chiusa per motivi di sicurezza.")
+                    .setCancelable(false)
+                    .setPositiveButton("OK", (dialog, which) -> requireActivity().finishAffinity())
+                    .show();
+            return;
+        }
+       //Se premo "Invio" quando digito il Pin, in automatico performa il click sul "btnLogin" (effettua il Login)
+        binding.etPin.setOnEditorActionListener((v, actionId, event) -> {
+            //Quando in una tastiera (IME=Input Method Editor) si preme un tasto, a seconda del device può essere generato un "actionId" o un "Event". Nel seguente if controlliamo se, quando premiamo "Invio/Fatto" viene generato un actionID o un Event.
+            if (actionId == EditorInfo.IME_ACTION_DONE //controlliamo che l'action ID sia la pressione di "Fatto/Invio"
+                    || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER
+                    && event.getAction() == KeyEvent.ACTION_UP)) {//l'evento ACTION_UP viene lanciato quando viene "rilasciato" il tasto premuto
+                binding.btnLogin.performClick();
+                return true;
+            }
+            return false;
+        });
+
+
+        Log.d("LoginFragment", "loginResult id=" + System.identityHashCode(authViewModel.getLoginResult()));
+        // Osserva il risultato del login (successo/errore PIN)
+        authViewModel.getLoginResult().observe(getViewLifecycleOwner(), result -> {
+            Log.d("LoginFragment", "loginResult observed: " + result);
+            if (result == AuthViewModel.LoginResult.SUCCESS) {
+                // Login riuscito -> naviga alla schermata principale (lista note), rimuovendo dal back-stack le schermate di auth
+                NavController nav = NavHostFragment.findNavController(LoginFragment.this);
+                nav.navigate(R.id.action_loginFragment_to_notesListFragment);
+            } else if (result == AuthViewModel.LoginResult.LOCKED) {
+                // lock con durata variabile, basato su KEY_LOCK_UNTIL
+                startLockCountdown(authViewModel.getLockRemainingMillis());
+            } else if (result == AuthViewModel.LoginResult.INCORRECT_PIN) {
+                // PIN errato
+                Toast.makeText(requireContext(), "PIN errato", Toast.LENGTH_SHORT).show();
+                // (Opzionale) Si potrebbe indicare il numero di tentativi rimanenti
+            }
+        });
+
+        // Gating iniziale: prova lo sblocco BIOMETRICO solo se:
+        // 1) l'hardware è disponibile e 2) ESISTE una busta DB biometrica salvata.
+        BiometricManager biometricManager = BiometricManager.from(requireContext());
+        boolean bioAvailable = (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                == BiometricManager.BIOMETRIC_SUCCESS);
+        boolean hasBioWrap = SecurityUtils.hasBioWrap(requireContext());
+        if (bioAvailable && hasBioWrap) {
+            showBiometricPromptForDbUnlock();          // prompt con decrypt della busta BIO
+            binding.pinGroup.setVisibility(View.GONE); // nasconde PIN finché non serve
+            binding.btnUsePin.setVisibility(View.VISIBLE);
+        } else {
+            // Nessuna busta BIO o hardware non disponibile → vai subito di PIN
+            binding.tvStatus.setText(getString(R.string.login_title));
+            binding.pinGroup.setVisibility(View.VISIBLE);
+            binding.btnUsePin.setVisibility(View.GONE);
+        }
+
+        // Pulsante "Usa PIN" (fallback esplicito dall'utente)
+        binding.btnUsePin.setOnClickListener(v -> {
+            cancelBiometricPrompt();   // Assicura la chiusura di eventuale prompt biometrico attivo
+            showPinLoginUI();
+        });
+
+        // Pulsante Conferma PIN
+        binding.btnLogin.setOnClickListener(v -> {
+            String pinInput = binding.etPin.getText().toString().trim();
+            if (pinInput.isEmpty()) {
+                Toast.makeText(requireContext(), "Inserisci il PIN", Toast.LENGTH_SHORT).show();
+            } else {
+                authViewModel.verifyPin(pinInput);  // verifica il PIN in background (risultato via LiveData)
+                Log.d("LoginFragment", "verifica del pin conclusa");
+                Log.d("LoginFragment", "VM id=" + System.identityHashCode(authViewModel));
+
+
+            }
+        });
+    }
+
+
+    /**
+     +     * Mostra il BiometricPrompt per lo sblocco della BUSTA DB BIOMETRICA. Su successo emette l'evento di nav via VM.
+     +     * Se l'utente annulla o c'è un errore → fallback immediato al PIN.
+     +     */
+    private void showBiometricPromptForDbUnlock() {
+        try {
+            // Carica (IV, CT) della busta biometrica salvata
+            // Se il tuo SecurityUtils NON ha loadWrappedDbWithBiometrics(ctx),
+            // sostituisci la riga sotto con i tuoi getter attuali su prefs.
+            Pair<byte[], byte[]> wrap = SecurityUtils.loadWrappedDbWithBiometrics(requireContext());
+            if (wrap == null || wrap.first == null || wrap.second == null) {
+                showPinLoginUI();
+                return;
+            }
+            byte[] iv = wrap.first;
+            byte[] ct = wrap.second;
+            // Cipher in DECRYPT_MODE con l'IV corretto (stessa chiave Keystore del provisioning)
+            BiometricHelper.ensureBiometricKey(requireContext());
+            final Cipher dec = BiometricHelper.getDecryptCipher(iv);
+            BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
+                    .setTitle(getString(R.string.biometric_prompt_title))
+                    .setSubtitle(getString(R.string.biometric_prompt_message))
+                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                    .setNegativeButtonText(getString(R.string.action_use_pin)) // pulsante esplicito per PIN
+                    .build();
+            new BiometricPrompt(requireActivity(), ContextCompat.getMainExecutor(requireContext()),
+                    new BiometricPrompt.AuthenticationCallback() {
+                @Override
+                public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                    try {
+                        Cipher armed = result.getCryptoObject() != null ? result.getCryptoObject().getCipher() : null;
+                        if (armed == null) {
+                            showPinLoginUI();
+                            return;
+                        }
+                        // Decifra la passphrase DB; qui la userai per aprire il DB se necessario
+                        byte[] pass = armed.doFinal(ct);
+                        SecurityUtils.zeroize(pass); // se non la usi qui, azzera per sicurezza
+                        // Naviga avanti (lo stack auth viene pulito dall'action nel grafo)
+                        NavController nav = NavHostFragment.findNavController(LoginFragment.this);
+                        nav.navigate(R.id.action_loginFragment_to_notesListFragment);
+                    } catch (GeneralSecurityException e) {
+                        Toast.makeText(requireContext(), R.string.bio_generic_crypto_error, Toast.LENGTH_SHORT).show();
+                        showPinLoginUI();
+                    }
+                }
+                @Override
+                public void onAuthenticationError(int code, @NonNull CharSequence err) {
+                    // Negative/Cancel → passa subito al PIN; altri errori → mostra messaggio + PIN
+                    if (code != BiometricPrompt.ERROR_NEGATIVE_BUTTON
+                            && code != BiometricPrompt.ERROR_USER_CANCELED
+                            && code != BiometricPrompt.ERROR_CANCELED) {
+                        Toast.makeText(requireContext(), err, Toast.LENGTH_SHORT).show();
+                    }
+                    showPinLoginUI();
+                }
+                @Override
+                public void onAuthenticationFailed() {
+                    Toast.makeText(requireContext(), R.string.biometric_try_again, Toast.LENGTH_SHORT).show();
+                }
+            }
+            ).authenticate(info, new BiometricPrompt.CryptoObject(dec));
+        } catch (Exception e) {
+            // Qualsiasi problema di setup → fai fallback al PIN
+            showPinLoginUI();
+        }
+    }
+
+
+    /** Mostra i campi di input PIN (chiamato quando l'utente opta per il PIN) */
+    private void showPinLoginUI() {
+        binding.tvStatus.setText("Inserisci il PIN per accedere:");
+        binding.pinGroup.setVisibility(View.VISIBLE);
+        binding.btnUsePin.setVisibility(View.GONE);
+    }
+
+    /** Abilita/Disabilita i controlli PIN in blocco */
+    private void enablePinInputs(boolean enabled) {
+        binding.etPin.setEnabled(enabled);
+        binding.btnLogin.setEnabled(enabled);
+    }
+    /** Avvia/aggiorna il countdown di lock basato sui ms residui ritornati dal ViewModel */
+    private void startLockCountdown(long remainingMs) {
+        // Cancella eventuale timer attivo per evitare doppi aggiornamenti
+        if (lockTimer != null) {
+            lockTimer.cancel();
+            lockTimer = null;
+        }
+        if (remainingMs <= 0L) {
+            // Nessun lock attivo: UI pronta
+            enablePinInputs(true);
+            // (Mantieni lo status corrente; se preferisci, reimposta il titolo standard)
+            return;
+        }
+        enablePinInputs(false);
+        // Mostra subito lo stato iniziale arrotondato ai secondi
+        long initialSec = (remainingMs + 999) / 1000;
+        // Riusa la tua stringa esistente con %d (es. "Troppi tentativi. Riprova tra %1$d s.")
+        binding.tvStatus.setText(getString(R.string.error_too_many_attempts, initialSec));
+        lockTimer = new CountDownTimer(remainingMs, 1000L) {
+            @Override public void onTick(long msLeft) {
+                long sec = (msLeft + 999) / 1000;
+                binding.tvStatus.setText(getString(R.string.error_too_many_attempts, sec));
+            }
+            @Override public void onFinish() {
+                enablePinInputs(true);
+                binding.tvStatus.setText(getString(R.string.login_title));
+            }
+        };
+        lockTimer.start();
+    }
+
+    /** Cancella il prompt biometrico se attivo (ad esempio quando l'utente passa a PIN) */
+    private void cancelBiometricPrompt() {
+        // BiometricPrompt di Android si chiude automaticamente quando l'utente preme "Usa PIN" o esce,
+        // quindi in genere non è necessario annullarlo manualmente.
+        // Questa funzione può rimanere vuota o gestire un CancellationSignal se implementato.
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Runnable r = new Runnable(){ public void run(){ Log.d("MAIN","tick"); handler.postDelayed(this, 500);} };
+        handler.post(r);
+
+    }
+    @Override
+    public void onPause() {
+        super.onPause();
+        handler.removeCallbacksAndMessages(null);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        handler.removeCallbacksAndMessages(null);
+    }
+
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (lockTimer != null) {
+            lockTimer.cancel();
+            lockTimer = null;
+        }
+        binding = null;
+    }
+}
