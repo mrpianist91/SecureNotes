@@ -28,7 +28,9 @@ public class SecureNotesApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        // Attiva i Dynamic Colors se disponibili
+        // Da Android 12 in poi adattiamo automaticamente il tema al sfondo del dispositivo (Material You).
+        // Attiviamo quindi i Dynamic Colors se disponibili. Ciò farà sì che il tema usi la palette dinamica derivata dallo sfondo del
+        //dispositivo, garantendo un’esperienza personalizzata e rispettando le linee guida moderne
         DynamicColors.applyToActivitiesIfAvailable(this);
 
         }

@@ -16,7 +16,10 @@ import com.example.securenotes.databinding.ActivityMainBinding;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.securenotes.feature_auth.AuthViewModel;
 import com.example.securenotes.feature_auth.AuthViewModel.LoginResult;
+import com.google.android.material.appbar.MaterialToolbar;
 
+import androidx.navigation.ui.AppBarConfiguration;
+import androidx.navigation.ui.NavigationUI;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkManager;
@@ -31,7 +34,7 @@ import androidx.work.WorkRequest;
 public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;     // ViewBinding
-
+    private AppBarConfiguration appBarConfiguration;
     // --------------------------------------------------------------------- //
     // Life-cycle
     // --------------------------------------------------------------------- //
@@ -45,11 +48,19 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        // Collega la Toolbar come Action Bar (host dei menu dei Fragment)
+        MaterialToolbar toolbar = binding.toolbar;
+        setSupportActionBar(toolbar);
+
         // ----- Navigation --------------------------------------------------
         NavHostFragment navHost =
                 (NavHostFragment) getSupportFragmentManager()
                         .findFragmentById(R.id.fragmentContainerView);
         NavController navController = navHost.getNavController();
+
+        // Collega Navigation al titolo/up button
+        appBarConfiguration = new AppBarConfiguration.Builder(R.id.notesListFragment).build();
+        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
         // ----- Collega qui il SessionObserver (ora il NavHost esiste) -----
         long timeoutMs = new PreferenceManager(this)
@@ -74,6 +85,14 @@ public class MainActivity extends AppCompatActivity {
         if (BuildConfig.DEBUG) {
             scheduleDebugBackup();
         }
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        NavHostFragment navHost = (NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.fragmentContainerView);
+        return NavigationUI.navigateUp(navHost.getNavController(), appBarConfiguration)
+                || super.onSupportNavigateUp();
     }
 
     @Override

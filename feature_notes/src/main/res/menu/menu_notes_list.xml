@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- Voce di menu per ricerca -->
+    <!--collapseActionView → indica che l’item ha una action view espandibile (es. SearchView)
+     e deve mostrarsi collassato (icona) finché l’utente non lo espande; può poi essere richiuso.
+      Ha effetto solo se l’item dichiara una action view tramite app:actionViewClass (es. androidx.appcompat.widget.SearchView-->
+    <item
+        android:id="@+id/action_search"
+        android:icon="@android:drawable/ic_menu_search"
+        android:title="Cerca"
+        app:showAsAction="ifRoom|collapseActionView"
+        app:actionViewClass="androidx.appcompat.widget.SearchView"/>
+    <!-- Sottosezione filtri Tag -->
+    <group android:id="@+id/group_filters"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/filter_all"
+            android:title="Tutti"
+            android:checked="true"
+            app:showAsAction="never"/>
+        <item
+            android:id="@+id/filter_faccende"
+            android:title="Faccende"
+            app:showAsAction="never"/>
+        <item
+            android:id="@+id/filter_lavoro"
+            android:title="Lavoro"
+            app:showAsAction="never"/>
+        <item
+            android:id="@+id/filter_famiglia"
+            android:title="Famiglia"
+            app:showAsAction="never"/>
+    </group>
+</menu>

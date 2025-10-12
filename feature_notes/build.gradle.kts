@@ -26,6 +26,12 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    buildFeatures {
+        /*L'abilitazione del ViewBinding è una scelta moderna e sicura per interagire con le view
+         definite in XML. Elimina la necessità di findViewById, prevenendo NullPointerException
+         e garantendo la type safety in fase di compilazione.*/
+        viewBinding = true // Abilita ViewBinding per semplificare l'accesso alle view
+    }
 }
 
 dependencies {
@@ -35,6 +41,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.livedata)
     implementation(libs.androidx.fragment)
+    implementation(libs.navigation.fragment)
     /*
     implementation(libs.appcompat)
     implementation(libs.material)
