@@ -24,7 +24,17 @@ import java.security.MessageDigest;
  * SecurityUtils (pulito)
  * - Nessuna passphrase DB salvata in chiaro.
  * - Wrapping biometrico (Keystore) → salviamo IV+CT.
- * - Fallback PIN-only (PBKDF2→AES-GCM in software) → salviamo SALT+IV+CT.
+ * - Fallback PIN-only (PBKDF2→AES-GCM in software) → salviamo SALT+IV+CT nel seguente modo
+ *  // Testo → Base64
+ *      * String original = "PIN 🔐";
+ *      * byte[] utf8 = original.getBytes(StandardCharsets.UTF_8);   // String → byte[]
+ *      * String b64 = Base64.encodeToString(utf8, Base64.NO_WRAP);  // byte[] → String(Base64)
+ *      * e recuperiamo il PIN nel seguente..
+ *      * // Base64 → Testo
+ *      * byte[] back = Base64.decode(b64, Base64.NO_WRAP);          // String(Base64) → byte[]
+ *      * String again = new String(back, StandardCharsets.UTF_8);   // byte[] → String
+ *      * // again == "PIN 🔐"
+ *      *
  * - EncryptedSharedPreferences come storage a riposo.
  */
 public final class SecurityUtils {
@@ -90,7 +100,7 @@ public final class SecurityUtils {
     /** Deriva una chiave AES-256 da PIN+salt via PBKDF2(HMAC-SHA-512). */
     public static byte[] kdfKeyFromPin(@NonNull char[] pin, @NonNull byte[] salt)
             throws GeneralSecurityException {
-        // 1) Costruisci una “password-based key spec” cioè un oggetto che specifica i dati di input della funzione di derivazione:
+        // 1) Costruisci una “password-based key spec” (PBEKeySpec) cioè un oggetto che specifica i dati di input della funzione di derivazione (della chiave AES):
         //    - pin: password come char[]
         //    - salt: sale casuale (es. 16 byte) salvato insieme ai dati wrappati
         //    - PBKDF2_ITER: numero di iterazioni di applicazione dell'algoritmo (es. 310_000) per rallentare il brute-force
@@ -99,10 +109,10 @@ public final class SecurityUtils {
         try {
             // 2) Chiedi al provider JCE di eseguire PBKDF2(HMAC-SHA512).
             //    generateSecret(spec) esegue i 310k round e produce una chiave binaria.
-            byte[] key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
+            byte[] aes_key = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512")
                     .generateSecret(spec).getEncoded();
             // 3) Ritorna i 32 byte della chiave derivata (usala per AES-GCM).
-            return key;
+            return aes_key;
         } finally {
             // 4) Sicurezza in RAM: pulisce la password interna trattenuta dalla spec.
             //    (NB: NON pulisce l’array 'pin' passato dal chiamante: quello va azzerato fuori.)
@@ -158,7 +168,7 @@ public final class SecurityUtils {
         return new android.util.Pair<>(c.getIV(), ct);
     }
 
-    /** Decifra con AES-GCM (software) usando la stessa IV. */
+    /** Decifra il ciphertext (ct) con AES-GCM (software) usando la stessa IV. */
     @NonNull
     public static byte[] aesGcmDecrypt(@NonNull byte[] key, @NonNull byte[] iv, @NonNull byte[] ct)
             throws GeneralSecurityException {
@@ -209,7 +219,18 @@ public final class SecurityUtils {
     }
 
 
-    /** Salva/aggiorna la busta PIN senza rimuovere quella BIO (fallback biometrico). */
+    /** REMINDER per passare dal PIN a stringa in base64 e viceversa:
+     * // Testo → Base64
+     * String original = "PIN 🔐";
+     * byte[] utf8 = original.getBytes(StandardCharsets.UTF_8);   // String → byte[]
+     * String b64 = Base64.encodeToString(utf8, Base64.NO_WRAP);  // byte[] → String(Base64)
+     *
+     * // Base64 → Testo
+     * byte[] back = Base64.decode(b64, Base64.NO_WRAP);          // String(Base64) → byte[]
+     * String again = new String(back, StandardCharsets.UTF_8);   // byte[] → String
+     * // again == "PIN 🔐"
+     *
+     * Salva/aggiorna la busta PIN senza rimuovere quella BIO (fallback biometrico). */
     public static void saveWrappedDbWithPin(Context ctx, byte[] salt, byte[] iv, byte[] ct) throws GeneralSecurityException, IOException {
         SharedPreferences p = getEncryptedPrefs(ctx);
         boolean hasBio = p.getString(DB_WRAP_CT_BIO, null) != null
@@ -243,9 +264,9 @@ public final class SecurityUtils {
         String sCt   = p.getString(DB_WRAP_CT_PIN,   null);
         if (sSalt == null || sIv == null || sCt == null) return null;
         return new PinWrapData(
-                Base64.decode(sSalt, Base64.NO_WRAP),
-                Base64.decode(sIv,   Base64.NO_WRAP),
-                Base64.decode(sCt,   Base64.NO_WRAP)
+                Base64.decode(sSalt, Base64.NO_WRAP),// String(Base64) → byte[]
+                Base64.decode(sIv,   Base64.NO_WRAP),// String(Base64) → byte[]
+                Base64.decode(sCt,   Base64.NO_WRAP)// String(Base64) → byte[]
         );
     }
 

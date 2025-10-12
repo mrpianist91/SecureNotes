@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.Material3.CardView.Elevated"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+    <!-- Usando MaterialCardView per supportare effetti Material
+    (evidenziazione all’interazione) -->
+    <LinearLayout
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Titolo della nota -->
+        <TextView
+            android:id="@+id/textTitle"
+            style="?attr/textAppearanceBodyLarge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="Titolo di esempio" />
+
+        <!-- Tag della nota (Chip) -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipTag"
+            style="@style/Widget.Material3.Chip.Assist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Tag" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

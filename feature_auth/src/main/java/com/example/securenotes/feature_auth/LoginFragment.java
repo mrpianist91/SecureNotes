@@ -27,11 +27,13 @@ import androidx.navigation.NavController;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.example.securenotes.core.AppDatabase;
 import com.example.securenotes.core.SecurityUtils;
 import com.example.securenotes.feature_auth.databinding.FragmentLoginBinding;
 import com.scottyab.rootbeer.RootBeer;  // Libreria per rilevare il root (aggiungere dipendenza RootBeer)
 
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 
 import javax.crypto.Cipher;
 
@@ -84,7 +86,31 @@ public class LoginFragment extends Fragment {
         authViewModel.getLoginResult().observe(getViewLifecycleOwner(), result -> {
             Log.d("LoginFragment", "loginResult observed: " + result);
             if (result == AuthViewModel.LoginResult.SUCCESS) {
-                // Login riuscito -> naviga alla schermata principale (lista note), rimuovendo dal back-stack le schermate di auth
+                // Login PIN riuscito -> decripta la passphrase del DB con il PIN e apri il database
+                String pinInput = binding.etPin.getText().toString().trim();
+                if (!pinInput.isEmpty()) {
+                    try {
+                        /*E’ una final class definita dentro SecurityUtils.java. Funge da contenitore semplice per SALT + IV + CipherText del PIN. */
+                        SecurityUtils.PinWrapData wrapped = SecurityUtils.loadWrappedDbWithPin(requireContext());
+                        if (wrapped != null) {
+                            // Deriva la chiave AES a 256 bit dal PIN e salt salvati tramite algoritmo PBKDF2(HMAC-SHA-512)
+                            char[] pinChars = pinInput.toCharArray();
+                            byte[] aesKey = SecurityUtils.kdfKeyFromPin(pinChars, wrapped.salt);
+                            SecurityUtils.zeroize(pinChars); // Pulisce il PIN in memoria
+                            // Decifra la passphrase del DB usando IV e CT salvati
+                            byte[] passphrase = SecurityUtils.aesGcmDecrypt(aesKey, wrapped.iv, wrapped.ct);
+                            Arrays.fill(aesKey, (byte) 0); // Azzera la chiave derivata
+                           // Apre il database cifrato con la passphrase ottenuta
+                            AppDatabase.openWithPassphrase(requireContext(), passphrase);
+                            SecurityUtils.zeroize(passphrase); // Pulisce la passphrase dopo l'uso
+                        }
+                    } catch (GeneralSecurityException e) {
+                        Toast.makeText(requireContext(), "Errore decrittazione database", Toast.LENGTH_LONG).show();
+                                e.printStackTrace();
+                        // In caso di errore critico, si potrebbe interrompere qui
+                    }
+                }
+                // Naviga alla schermata principale (lista note), rimuovendo le schermate di auth dallo stack
                 NavController nav = NavHostFragment.findNavController(LoginFragment.this);
                 nav.navigate(R.id.action_loginFragment_to_notesListFragment);
             } else if (result == AuthViewModel.LoginResult.LOCKED) {
@@ -143,8 +169,6 @@ public class LoginFragment extends Fragment {
     private void showBiometricPromptForDbUnlock() {
         try {
             // Carica (IV, CT) della busta biometrica salvata
-            // Se il tuo SecurityUtils NON ha loadWrappedDbWithBiometrics(ctx),
-            // sostituisci la riga sotto con i tuoi getter attuali su prefs.
             Pair<byte[], byte[]> wrap = SecurityUtils.loadWrappedDbWithBiometrics(requireContext());
             if (wrap == null || wrap.first == null || wrap.second == null) {
                 showPinLoginUI();
@@ -173,6 +197,8 @@ public class LoginFragment extends Fragment {
                         }
                         // Decifra la passphrase DB; qui la userai per aprire il DB se necessario
                         byte[] pass = armed.doFinal(ct);
+                        // Apre il database cifrato con SQLCipher (istanza singleton)
+                        AppDatabase.openWithPassphrase(requireContext(), pass);
                         SecurityUtils.zeroize(pass); // se non la usi qui, azzera per sicurezza
                         // Naviga avanti (lo stack auth viene pulito dall'action nel grafo)
                         NavController nav = NavHostFragment.findNavController(LoginFragment.this);

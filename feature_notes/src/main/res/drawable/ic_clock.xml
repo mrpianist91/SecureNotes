@@ -1,0 +1,63 @@
+
+<!-- ic_clock.xml : icona orologio vettoriale (cerchio + lancette + punto centrale) -->
+
+<!--width/height vs viewport: come viene scalato
+    android:width e android:height sono le DIMENSIONI FISICHE intrinseche del drawable (in dp).
+    Lo scaling è:
+    scalaX = width / viewportWidth
+    scalaY = height / viewportHeight
+    Se mantieni lo stesso rapporto (es. 24×24 → 48×48), lo scaling è uniforme e le proporzioni restano corrette.
+    -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Anello esterno (circonferenza): fillType evenOdd = buco centrale
+         android:fillColor="#000000" -> colore (nero puro) di riempimento del path-->
+    <path
+        android:fillColor="#000000"
+        android:fillType="evenOdd"
+        android:pathData="
+            M12,2
+            C6.48,2 2,6.48 2,12
+            s4.48,10 10,10 10,-4.48 10,-10
+            S17.52,2 12,2
+            z
+            M12,4
+            C7.58,4 4,7.58 4,12
+            s3.58,8 8,8 8,-3.58 8,-8
+            S16.42,4 12,4
+            z" />
+
+    <!-- Lancetta delle ore: verticale corta (centrata su x=12, da y=12 a y=9) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="
+            M11.5,12
+            L12.5,12
+            L12.5,9
+            L11.5,9
+            z" />
+
+    <!-- Lancetta dei minuti: orizzontale più lunga (da x=12 a x=17 a y~12) -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="
+            M12,11.5
+            L17,11.5
+            L17,12.5
+            L12,12.5
+            z" />
+
+    <!-- Punto centrale (perno): piccolo cerchio r≈1 -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="
+            M12,11
+            C11.45,11 11,11.45 11,12
+            s0.45,1 1,1 1,-0.45 1,-1
+            S12.55,11 12,11
+            z" />
+</vector>

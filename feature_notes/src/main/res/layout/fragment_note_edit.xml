@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--contenitore per scorrimento verticale quando il contenuto è più alto dello schermo. Possono avere un solo “child”  (in questo caso un LinearLayout)-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/scroll_edit_note"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    tools:context=".NoteEditFragment">
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Campo Titolo Nota
+             1) android:inputType="textCapSentences" -> indica alla tastiera (IME)
+              che il campo è testo libero e che deve attivare automaticamente la maiuscola all’inizio di ogni frase-->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/title">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:inputType="textCapSentences" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Menu (Dropdown) a tendina scelta Tag
+             1) AutoCompleteTextView è il campo figlio di TextInputLayout che mostra il tag selezionato e apre la tendina (drop-down)
+              con le opzioni fornite da un Adapter. Con android:inputType="none" si comporta come un selettore non editabile
+               (cioè non è possibile “scrivere” il tag che si vuole selezionare, ma è possibile solo la scelta da elenco).-->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutTag"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/tag">
+            <AutoCompleteTextView
+                android:id="@+id/dropdownTag"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Barra con le opzioni di formattazione (esempio: Bold) -->
+        <!--android:baselineAligned="false -> i vari bottoni/opzioni interni
+         alla barra non verranno allineati sulla base del testo interno (es. “B” per bold),
+          ma solo rispettando la normale logica di misura/gravity (es. top/center/bottom)-->
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:baselineAligned="false">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBold"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="B"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:minWidth="48dp" />
+            <!-- Eventuali altri pulsanti (Italic, etc.) possono essere
+            aggiunti qui -->
+        </LinearLayout>
+
+        <!-- Campo "Corpo" Nota -->
+        <!--android:minLines=6...impone che il campo abbia almeno 6 righe visibili di area di testo, che prendano spazio.
+            android:gravity="top"...allinea il testo in alto
+            android:inputType="textMultiline"...La tastiera mostra il tasto “Invio” che inserisce una nuova linea; abilita comportamento da editor di testo.
+            android:imeOptions="flagNoEnterAction"...Premendo Invio non viene inviato/un’azione (Done/Send/Search), ma si inserisce una nuova riga.-->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:hint="@string/note_body_hint">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editBody"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minLines="6"
+                android:gravity="top"
+                android:inputType="textMultiLine"
+                android:imeOptions="flagNoEnterAction"
+                tools:text="@string/note_body" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Switch Nota Temporanea (pulsante/flag per rendere la nota “temporanea” o meno)
+             android:checked="false"...lo switch è impostato a “false” di default (la nota non è temporanea)-->
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:layout_marginTop="16dp">
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchTemporary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/tempo_note_24h"
+                style="?attr/textAppearanceBodyMedium" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
