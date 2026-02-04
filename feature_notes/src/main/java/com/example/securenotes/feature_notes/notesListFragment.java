@@ -132,6 +132,7 @@ public class notesListFragment extends Fragment implements NoteAdapter.OnNoteCli
         });
     }
 
+    //Evento di click (apertura) di una nota
     @Override
     public void onNoteClick(@NonNull Note note) {
         // All’evento di click su una nota esistente: passa l’ID della nota a NoteEditFragment tramite Safe Args
@@ -146,7 +147,7 @@ public class notesListFragment extends Fragment implements NoteAdapter.OnNoteCli
     @Override
     public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
         inflater.inflate(R.menu.menu_notes_list, menu);
-        // Forza l'esclusività (un solo checked per volta) nel gruppo dei filtri
+        // Forza l'esclusività (un solo checked per volta) nel gruppo dei filtri/tag
         menu.setGroupCheckable(R.id.group_filters, /*checkable=*/true, /*exclusive=*/true);
         // Configura SearchView per ricerca istantanea
         MenuItem searchItem = menu.findItem(R.id.action_search);

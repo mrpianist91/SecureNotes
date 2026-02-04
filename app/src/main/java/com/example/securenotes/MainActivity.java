@@ -3,6 +3,7 @@ package com.example.securenotes;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ProcessLifecycleOwner;
@@ -25,11 +26,15 @@ import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
- * Activity di lancio dell’app:
- * – ospita il NavHostFragment dichiarato in activity_main.xml
- * – avvia (solo in debug) un BackupWorker di prova
- * – registra il SessionObserver per il timeout di sessione
+ * Activity principale che funge da host per la navigazione.
+ * Gestisce:
+ * - Setup della Toolbar e BottomNavigationView con Jetpack Navigation.
+ * - Visibilità condizionale della UI (BottomNav visibile solo nei fragment principali).
+ * - Avvio del SessionObserver per il timeout di sicurezza.
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -52,26 +57,66 @@ public class MainActivity extends AppCompatActivity {
         MaterialToolbar toolbar = binding.toolbar;
         setSupportActionBar(toolbar);
 
-        // ----- Navigation --------------------------------------------------
+        // ----- Navigation Setup--------------------------------------------------
         NavHostFragment navHost =
                 (NavHostFragment) getSupportFragmentManager()
                         .findFragmentById(R.id.fragmentContainerView);
+        // Controllo difensivo se il fragment non è ancora istanziato (raro ma possibile)
+        if (navHost == null) return;
         NavController navController = navHost.getNavController();
 
         // Collega Navigation al titolo/up button
-        appBarConfiguration = new AppBarConfiguration.Builder(R.id.notesListFragment).build();
+        /*appBarConfiguration = new AppBarConfiguration.Builder(R.id.notesListFragment).build();
+        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);*/
+
+        // 4. CONFIGURAZIONE "TOP LEVEL DESTINATIONS"
+        // Definiamo quali schermate sono "radici" della navigazione (Note, Vault, Settings).
+        // In queste schermate NON verrà mostrata la freccia "Indietro" (Up Button) nella Toolbar.
+        Set<Integer> topLevelDestinations = new HashSet<>();
+        topLevelDestinations.add(R.id.notesListFragment);
+        topLevelDestinations.add(R.id.vaultFragment);
+        topLevelDestinations.add(R.id.settingsFragment);
+
+        appBarConfiguration = new AppBarConfiguration.Builder(topLevelDestinations).build();
+
+        // Collega la Toolbar al NavController usando la configurazione definita
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
+        // 5. SETUP BOTTOM NAVIGATION VIEW
+        // Questo metodo collega automaticamente i click sulla BottomBar alla navigazione.
+        // Funziona perché gli ID nel menu_bottom_nav.xml coincidono con gli ID nel nav_graph.xml.
+        NavigationUI.setupWithNavController(binding.bottomNav, navController);
+
+        // 6. GATEKEEPER VISIVO (Gestione Visibilità BottomBar)
+        // La barra deve apparire SOLO nelle destinazioni principali.
+        // Deve sparire in: Splash, Login, Onboarding, Modifica Nota, etc.
+        navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+            int id = destination.getId();
+
+            // Verifichiamo se la destinazione attuale è una di quelle Top Level
+            if (topLevelDestinations.contains(id)) {
+                binding.bottomNav.setVisibility(View.VISIBLE);
+
+                // Opzionale: Reinneschiamo il timer di sessione quando si atterra su una schermata principale
+                // per garantire che l'attività venga registrata.
+                refreshSession();
+            } else {
+                binding.bottomNav.setVisibility(View.GONE);
+            }
+        });
+
         // ----- Collega qui il SessionObserver (ora il NavHost esiste) -----
-        long timeoutMs = new PreferenceManager(this)
+        setupSessionObserver(navController);
+        /*long timeoutMs = new PreferenceManager(this)
                 .getSessionTimeoutMs(3 * 60 * 1000L); // default 3 minuti in ms
         ProcessLifecycleOwner.get()
                 .getLifecycle()
-                .addObserver(new SessionObserver(navController, timeoutMs));
+                .addObserver(new SessionObserver(navController, timeoutMs));*/
 
-        // Avvia/riavvia la sessione quando si "atterra" nella schermata delle note,
+
+        // Avvia/riavvia la sessione quando si "approda" nella schermata delle note,
         // indipendentemente dal percorso (PIN o biometria).
-        navController.addOnDestinationChangedListener((controller, destination, args) -> {
+        /*navController.addOnDestinationChangedListener((controller, destination, args) -> {
             if (destination.getId() == R.id.notesListFragment) {
                 //long timeoutMs = new PreferenceManager(this)
                 //        .getSessionTimeoutMs(3 * 60 * 1000L); // default 3'
@@ -79,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
                 long toMs = new PreferenceManager(this).getSessionTimeoutMs(3 * 60 * 1000L);
                 SessionObserver.startSession(toMs);
             }
-        });
+        });*/
 
         // ----- Backup di test (solo build DEBUG) --------------------------
         if (BuildConfig.DEBUG) {
@@ -87,17 +132,37 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setupSessionObserver(NavController navController) {
+        long timeoutMs = new PreferenceManager(this)
+                .getSessionTimeoutMs(3 * 60 * 1000L); // default 3 minuti
+
+        ProcessLifecycleOwner.get()
+                .getLifecycle()
+                .addObserver(new SessionObserver(navController, timeoutMs));
+    }
+
+    private void refreshSession() {
+        long toMs = new PreferenceManager(this).getSessionTimeoutMs(3 * 60 * 1000L);
+        SessionObserver.startSession(toMs);
+    }
+
     @Override
     public boolean onSupportNavigateUp() {
         NavHostFragment navHost = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.fragmentContainerView);
+       /* return NavigationUI.navigateUp(navHost.getNavController(), appBarConfiguration)
+                || super.onSupportNavigateUp();*/
+        if (navHost == null) return super.onSupportNavigateUp();
+
         return NavigationUI.navigateUp(navHost.getNavController(), appBarConfiguration)
                 || super.onSupportNavigateUp();
     }
 
+    // Intercetta ogni interazione utente per resettare il timer di sessione
     @Override
     public void onUserInteraction() {
         super.onUserInteraction();
+        SessionObserver.resetSessionTimer();
     }
 
     @Override

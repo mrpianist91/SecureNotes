@@ -6,7 +6,7 @@
     <string name="onboarding_next">Avanti</string>
     <string name="onboarding_start">Inizia</string>
     <string name="create_pin_title">Crea il tuo PIN</string>
-    <string name="hint_pin">PIN (min. 6 cifre)</string>
+    <!--<string name="hint_pin">PIN (min. 6 cifre)</string>-->
     <string name="hint_new_pin">Nuovo PIN</string>
     <string name="action_create_pin">Conferma PIN</string>
     <string name="hint_confirm_pin">Conferma PIN</string>

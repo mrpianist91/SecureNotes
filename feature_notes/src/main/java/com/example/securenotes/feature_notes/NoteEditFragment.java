@@ -18,6 +18,7 @@ import com.example.securenotes.core.NoteDao;
 import com.example.securenotes.core.NoteRepository;
 import com.example.securenotes.core.AppDatabase;
 import com.example.securenotes.feature_notes.databinding.FragmentNoteEditBinding;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.transition.MaterialSharedAxis;
 import java.util.UUID;
 import android.text.Html;
@@ -143,12 +144,26 @@ public class NoteEditFragment extends Fragment {
                         saveAndExit();
                     }
                 });
+        // 2. FIX CRITICO: Intercetta la freccia "Up" nella Toolbar (App Bar)
+        // Recuperiamo la Toolbar dall'Activity.
+        // Cerchiamo la risorsa chiamata "toolbar" di tipo "id" nel package dell'applicazione ospitante.
+        int toolbarId = getResources().getIdentifier("toolbar", "id", requireContext().getPackageName());
+        if (toolbarId != 0) {
+            MaterialToolbar toolbar = requireActivity().findViewById(toolbarId);
+            if (toolbar != null) {
+                toolbar.setNavigationOnClickListener(v -> {
+                    // Simuliamo la pressione del tasto Back.
+                    // Questo attiverà il callback definito al punto 1, eseguendo saveAndExit().
+                    requireActivity().getOnBackPressedDispatcher().onBackPressed();
+                });
+            }
+        }
     }
 
     /** Salva la nota in editing e torna alla lista. */
     private void saveAndExit() {
         // Legge i valori attuali dai campi UI
-        String titleInput = binding.editTitle.getText().toString().trim();
+        String titleInput = binding.editTitle.getText().toString().trim();//.trim() elimina gli spazi bianchi iniziali e finali
         String bodyInputPlain = binding.editBody.getText().toString(); // testo senza markup
         // Converte il contenuto formattato in HTML per salvataggio persistente
         Spanned spanned = binding.editBody.getText();
