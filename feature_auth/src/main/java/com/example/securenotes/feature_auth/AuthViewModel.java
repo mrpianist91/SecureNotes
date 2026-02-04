@@ -15,6 +15,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
+import com.example.securenotes.core.PinManager;
 import com.example.securenotes.core.SecurityUtils;
 
 import java.io.IOException;
@@ -25,23 +26,29 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AuthViewModel extends AndroidViewModel {
-    // Risultati possibili per il login PIN
+    // Risultati possibili per il login PIN...manteniamo l'enum locale per compatibilità con i Fragment esistenti
     public enum LoginResult { SUCCESS, INCORRECT_PIN, LOCKED}
 
     private final MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> pinCreated = new MutableLiveData<>();
+
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private int pinFailCount = 0;
-    private boolean wasPinExisting = false;
+
+    // NUOVO: Delega la logica di verifica
+    private final PinManager pinManager;
+
+    /*private int pinFailCount = 0;
+    private boolean wasPinExisting = false;*/
     private static final String KEY_PIN_SALT = "pin_salt";
     private static final String KEY_PIN_HASH = "pin_hash";
-    private static final String KEY_FAILS = "pin_fail_count";
+    /*private static final String KEY_FAILS = "pin_fail_count";
     private static final String KEY_LOCK_UNTIL = "pin_lock_until";
-    private static final String KEY_BACKOFF_STEP = "pin_backoff_step";
+    private static final String KEY_BACKOFF_STEP = "pin_backoff_step";*/
 
     public AuthViewModel(@NonNull Application application) {
         super(application);
+        this.pinManager = new PinManager(application);
         Log.d("AuthVM", "loginResult id=" + System.identityHashCode(loginResult));
     }
 
@@ -57,15 +64,15 @@ public class AuthViewModel extends AndroidViewModel {
     }
 
     /** Indica se un PIN era già registrato (usato per determinare se si tratta di modifica) */
-    public boolean wasPinExisting() {
+    /*public boolean wasPinExisting() {
         return wasPinExisting;
-    }
+    }*/
 
     /** Verifica se esiste già un PIN configurato */
     public boolean isPinSet() {
         try {
             SharedPreferences prefs = SecurityUtils.getEncryptedPrefs(getApplication());
-            return prefs.getString(KEY_PIN_HASH, null) != null || prefs.getString("user_pin", null) != null; // fallback legacy
+            return prefs.getString(KEY_PIN_HASH, null) != null/*|| prefs.getString("user_pin", null) != null*/; // fallback legacy
         } catch (Exception e) {
             // In caso di errore di lettura, per sicurezza consideriamo non impostato
             return false;
@@ -76,7 +83,7 @@ public class AuthViewModel extends AndroidViewModel {
     public void verifyPin(@NonNull String inputPin) {
         Log.d("AuthVM", "VM id=" + System.identityHashCode(this));
         executor.execute(() -> {
-            try {
+            /*try {
                 Log.d("AuthVM", "VM id=" + System.identityHashCode(this));
                 SharedPreferences prefs = SecurityUtils.getEncryptedPrefs(getApplication());
                 long now = System.currentTimeMillis();
@@ -93,7 +100,7 @@ public class AuthViewModel extends AndroidViewModel {
                 String hashB64 = prefs.getString(KEY_PIN_HASH, null);
 
                  // Fallback legacy: se non migrato, usa ancora user_pin
-                if (saltB64 == null || hashB64 == null) {
+                /*if (saltB64 == null || hashB64 == null) {
                 String legacy = prefs.getString("user_pin", null);
                 boolean ok = legacy != null && inputPin.equals(legacy);
                 if (ok) {
@@ -113,8 +120,8 @@ public class AuthViewModel extends AndroidViewModel {
 
                 }
                 return;
-                }
-
+                }*/
+/*
                 // carica salt/hash
                 byte[] salt = Base64.decode(saltB64, Base64.NO_WRAP);
                 byte[] expected = Base64.decode(hashB64, Base64.NO_WRAP);
@@ -164,7 +171,26 @@ public class AuthViewModel extends AndroidViewModel {
                 mainHandler.post(() -> loginResult.setValue(LoginResult.INCORRECT_PIN));
                 Log.d("AuthVM", "emit " + LoginResult.INCORRECT_PIN + " at " + System.nanoTime());
 
-            }
+            }*/
+            PinManager.PinResult result = pinManager.verifyPin(inputPin);
+
+            mainHandler.post(() -> {
+                switch (result) {
+                    case SUCCESS:
+                        loginResult.setValue(LoginResult.SUCCESS);
+                        break;
+                    case LOCKED:
+                        loginResult.setValue(LoginResult.LOCKED);
+                        break;
+                    case INCORRECT:
+                        loginResult.setValue(LoginResult.INCORRECT_PIN);
+                        break;
+                    default:
+                        // Gestione errore generico come PIN errato per sicurezza UI
+                        loginResult.setValue(LoginResult.INCORRECT_PIN);
+                        break;
+                }
+            });
         });
     }
 
@@ -174,7 +200,7 @@ public class AuthViewModel extends AndroidViewModel {
             try {
                 SharedPreferences prefs = SecurityUtils.getEncryptedPrefs(getApplication());
                 // Verifica se c'era già un PIN (se sì, siamo in modifica PIN)
-                wasPinExisting = prefs.getString(KEY_PIN_HASH, null) != null;
+               // wasPinExisting = prefs.getString(KEY_PIN_HASH, null) != null;
 
                 // Salvataggio sicuro del PIN (NB: EncryptedSharedPreferences cifra automaticamente il valore)
                 byte[] salt = SecurityUtils.generateSalt();//genera un Salt casuale
@@ -258,15 +284,17 @@ public class AuthViewModel extends AndroidViewModel {
     }
 
     // Ritorna il timestamp (ms) fino al quale l'utente è bloccato; 0 se nessun lock.
-    public long getLockUntilMillis() {
+    /*public long getLockUntilMillis() {
         SharedPreferences prefs = SecurityUtils.getEncryptedPrefs(getApplication());
         return prefs.getLong(KEY_LOCK_UNTIL, 0L);
-    }
+    }*/
     // Ritorna i ms residui di lock; 0 se non c'è lock attivo o già scaduto.
         public long getLockRemainingMillis() {
-        long until = getLockUntilMillis();
-        long now = System.currentTimeMillis();
-        return Math.max(0L, until - now);
+
+           /* long until = getLockUntilMillis();
+            long now = System.currentTimeMillis();
+            return Math.max(0L, until - now);*/
+            return pinManager.getLockRemainingMillis();
     }
 
 }

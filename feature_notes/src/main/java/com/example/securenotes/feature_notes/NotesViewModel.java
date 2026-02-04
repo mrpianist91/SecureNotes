@@ -34,6 +34,7 @@ public class NotesViewModel extends ViewModel {
     public final LiveData<List<Note>> notes;
     // (Opzionale) nota attualmente selezionata per editing (usata se si condivide VM tra fragment)
     private Note currentNote;
+
     public NotesViewModel(NoteRepository repository) {
         this.repository = repository;
 // Ottiene LiveData di tutte le note (triggera anche la cancellazione note scadute)
@@ -95,7 +96,7 @@ public class NotesViewModel extends ViewModel {
 
     /**
      * Ricerca nelle note (già caricate) una nota per ID.
-     * fa il returno della Nota trovata con l'ID specificato, o null se non trovata.
+     * fa il return della Nota trovata con l'ID specificato, o null se non trovata.
      */
     public Note findNoteById(String noteId) {
         List<Note> list = notes.getValue();

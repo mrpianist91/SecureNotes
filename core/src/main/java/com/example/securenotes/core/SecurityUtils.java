@@ -43,7 +43,7 @@ public final class SecurityUtils {
 
     // ======= EncryptedSharedPreferences =======
 
-    private static final String PREFS_FILE = "secure_prefs";
+    private static final String PREFS_FILE = "secure_notes_prefs";
 
     public static SharedPreferences getEncryptedPrefs(@NonNull Context ctx) {
         try {

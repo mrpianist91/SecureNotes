@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_too_many_attempts">Troppi tentativi falliti. Riprova tra %d secondi.</string>
+    <string name="hint_pin">PIN (min. 6 cifre)</string>
+    <string name="action_use_pin">Usa PIN</string>
+    <string name="button_confirm">Conferma</string>
+    <string name="button_cancel">Annulla</string>
+    <string name="pin_locked_message">Troppi tentativi. Riprova tra %d secondi.</string>
+    <string name="pin_error">PIN errato</string>
+</resources>

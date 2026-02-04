@@ -42,7 +42,7 @@
     <!-- Altre destinazioni principali (Vault, Settings, ecc.) -->
     <fragment
         android:id="@+id/vaultFragment"
-        android:name="com.example.securenotes.vaultFragment"
+        android:name="com.example.securenotes.feature_vault.VaultFragment"
         android:label="Vault"
         tools:layout="@layout/fragment_vault" />
     <fragment

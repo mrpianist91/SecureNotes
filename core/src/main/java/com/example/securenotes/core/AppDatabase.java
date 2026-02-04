@@ -10,10 +10,12 @@ import androidx.room.RoomDatabase;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SupportFactory;
 
-@Database(entities = { Note.class }, version = 1, exportSchema = true)
+// Aggiornamento versione a 2, aggiunta VaultFile.class
+@Database(entities = { Note.class, VaultFile.class }, version = 2, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract NoteDao noteDao();
+    public abstract VaultDao vaultDao(); // Nuovo DAO
 
     private static volatile AppDatabase INSTANCE;
 
