@@ -1,14 +1,241 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".settingsFragment">
+    android:background="?attr/colorSurface"
+    android:fillViewport="true">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <!--Il LinearLayout impila i blocchi uno sotto l’altro il padding = 16dp è standard di Android per mantenere le distanze dai bordi-->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:clipToPadding="false">
+        <!--Inseriamo un’area di testo a inizio pagina con scritto “Impostazioni” (scelta design Material 3)…NB scrollando la pagina questa TextView “Impostazioni” sparisce
+        Material Design utilizza un sistema di colori basato sulle relazioni, non sulle tinte. Ogni colore di sfondo ha un colore corrispondente per il contenuto che ci sta sopra (testo o icone), chiamato colore "On". colorSurface: È il colore dello sfondo dei componenti (es. il bianco di una CardView, il grigio chiaro di un BottomSheet, o il nero/grigio scuro in Dark Mode). colorOnSurface: È il colore che deve essere usato per scrivere SOPRA (On) la Surface. È calcolato per avere un contrasto sufficiente (Accessibilità) ed essere leggibile. Si usa per i titoli e il testo importante.
+        -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Impostazioni"
+            style="?attr/textAppearanceHeadlineLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:layout_marginBottom="24dp" />
 
-</FrameLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sicurezza"
+            style="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorPrimary"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="4dp"/>
+
+        <!--1)La MaterialCardView deriva dal FrameLayout ed è potenziata da Google per apparire come un foglio con gli angoli arrotondati che organizza visivamente e logicamente (a blocchi) le informazioni contenute (gruppi di opzioni o comandi), tramite sapiente uso delle ombre e dei colori, senza apparire come un foglio bianco. Una importante feature è che taglia automaticamente i contenuti che dovessero uscire fuori dalla card. Di seguito abbiamo due card: una per il blocco opzioni di sicurezza (cambio pin, attivazione/disattivazione biometria, Timeout), e uno per il blocco dei dati (backup, restore).
+        2) style="?attr/materialCardViewFilledStyle" usa il colore colorSurfaceContainerHighest (o surfaceVariant) per lo sfondo della Card (adattandosi alla light mode e Dark mode). Non ha ombra/elevazione e nessun bordo.-->
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="?attr/materialCardViewFilledStyle"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!--I ConstraintLayout sono un’evoluzione dei LinearLayout che vengono usati per posizionare in modo ordinato (e vincolato) gli elementi, uno rispetto all’altro. Generalmente è usato per immagini e testi. E’ particolarmente indicato quando almeno uno degli elementi contenuti ha lunghezza/grandezza variabile.
+
+                L’attributo android:background="?attr/selectableItemBackground" serve ad aggiungere un feedback tattile alla pressione del tasto: è un’onda che si espande dal punto in cui premiamo sino ai bordi del tasto stesso.-->
+
+                <!--Cambia PIN-->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/btn_change_pin"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:id="@+id/icon_pin"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_lock_idle_lock"
+                        app:tint="?attr/colorOnSurfaceVariant"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="Cambia PIN"
+                        style="?attr/textAppearanceBodyLarge"
+                        android:layout_marginStart="16dp"
+                        app:layout_constraintStart_toEndOf="@id/icon_pin"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toStartOf="@id/arrow_pin"/>
+
+                    <!--android:rotation ruota la view attorno a suo centro di un certo numero di gradi. Impostando a 0 stiamo dicendo che la freccia punti a destra (default)…potremmo eliminare questo attributo.-->
+                    <ImageView
+                        android:id="@+id/arrow_pin"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_media_play"
+                        android:rotation="0"
+                        app:tint="?attr/colorOnSurfaceVariant"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!--La MaterialDivider è una linea di divisione che in questo caso serve a dividere le varie opzioni del blocco “Sicurezza”.
+
+                app:dividerInsetStart="56dp"/> indica che la linea è rientrata a sinistra di 56dp (dallo “start”)-->
+
+                <com.google.android.material.divider.MaterialDivider
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:dividerInsetStart="56dp"/>
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:id="@+id/icon_bio"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_lock_lock"
+                        app:tint="?attr/colorOnSurfaceVariant"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="Sblocco Biometrico"
+                        style="?attr/textAppearanceBodyLarge"
+                        android:layout_marginStart="16dp"
+                        app:layout_constraintStart_toEndOf="@id/icon_bio"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toStartOf="@id/switch_biometric"/>
+
+                    <!--La MaterialSwitch serve per il layout moderno di ON/OFF di Android. Cambia colore in base allo stato. Quando è ON, diventa del colore primario dell'app (?attr/colorPrimary) per indicare "Attivo". Quando è OFF, diventa grigio (?attr/colorOutline) per indicare "Inattivo". Ad esso è associata una callback per “attivare”/”disattivare” il comportamento associato.-->
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_biometric"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <com.google.android.material.divider.MaterialDivider
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:dividerInsetStart="56dp"/>
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/btn_timeout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:id="@+id/icon_time"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_menu_recent_history"
+                        app:tint="?attr/colorOnSurfaceVariant"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Timeout Sessione"
+                        style="?attr/textAppearanceBodyLarge"
+                        android:layout_marginStart="16dp"
+                        app:layout_constraintStart_toEndOf="@id/icon_time"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+
+                    <!--ricorda che tools:text=”3 min” è valido solo a “design time”. Non apparirà a schermo durante la run dell’app-->
+
+                    <TextView
+                        android:id="@+id/tv_timeout_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        tools:text="3 min"
+                        style="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorPrimary"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"/>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dati e Backup"
+            style="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorPrimary"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="4dp"/>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="?attr/materialCardViewFilledStyle">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- L'attributo app:iconGravity="textStart" serve a incollare l'icona all'inizio del testo, facendoli viaggiare insieme come un unico blocco centrato.-->
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btn_backup"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="Esegui Backup Cifrato"
+                                    style="@style/Widget.Material3.Button.TonalButton"
+                                    app:icon="@android:drawable/ic_menu_save"
+                                    app:iconGravity="textStart"/>
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/btn_restore"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="Ripristina Backup"
+                                    style="@style/Widget.Material3.Button.OutlinedButton"
+                                    android:layout_marginTop="8dp"
+                                    app:icon="@android:drawable/ic_menu_revert"
+                                    app:iconGravity="textStart"/>
+
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                    </LinearLayout>
+                </androidx.core.widget.NestedScrollView>

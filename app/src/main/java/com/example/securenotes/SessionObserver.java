@@ -97,6 +97,12 @@ public class SessionObserver implements Application.ActivityLifecycleCallbacks, 
         timeoutHandler.postDelayed(timeoutRunnable, sessionTimeoutMs); //avvia il nuovo timer
     }
 
+
+    public static void updateTimeout(long newTimeoutMs) {
+        sessionTimeoutMs = newTimeoutMs;
+    }
+
+
     @Override
     public void onActivityStarted(@NonNull Activity activity) {
 

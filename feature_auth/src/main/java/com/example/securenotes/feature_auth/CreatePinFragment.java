@@ -25,6 +25,7 @@ import androidx.navigation.NavController;
 import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
+import com.example.securenotes.core.AuthManager;
 import com.example.securenotes.core.SecurityUtils;
 import com.example.securenotes.feature_auth.databinding.FragmentCreatePinBinding;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
@@ -74,13 +75,26 @@ public class CreatePinFragment extends Fragment {
         enrollLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {//lambda invocata quando si torna dalle Impostazioni; "result" è il valore tornato
-                    BiometricHelper.BiometricCapability cap = BiometricHelper.ensureBiometricKey(requireContext());
+
+                    /*BiometricHelper.BiometricCapability cap = BiometricHelper.ensureBiometricKey(requireContext());
                     if (cap == BiometricHelper.BiometricCapability.AVAILABLE) {
                       // Enrollment completato: puoi proseguire col provisioning sicuro della passphrase DB usando la biometria:
                         provisionDatabaseSecretWithBiometrics();
                     } else { //Enrollment non andato a buon fine
                         Toast.makeText(requireContext(), "Completa l'attivazione biometrica per continuare", Toast.LENGTH_LONG).show();
+                    }*/
+
+                    // Controlliamo solo se l'utente ha configurato qualcosa
+                    BiometricManager bm = BiometricManager.from(requireContext());
+                    int canAuth = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
+                    // Enrollment completato: puoi proseguire col provisioning sicuro della passphrase DB usando la biometria:
+                    if (canAuth == BiometricManager.BIOMETRIC_SUCCESS) {
+                        provisionDatabaseSecretWithBiometrics();
+                    } else { //Enrollment non andato a buon fine
+                        Toast.makeText(requireContext(), "Attivazione biometrica non completata", Toast.LENGTH_LONG).show();
                     }
+
+
                 });
 
         // Aggiorna barra di robustezza ad ogni digitazione del PIN
@@ -140,7 +154,7 @@ public class CreatePinFragment extends Fragment {
             // Salva il PIN in modo sicuro tramite ViewModel
             authViewModel.createPin(pin);
 
-            // 2) Provisioning del segreto DB in base alla biometria
+            /*// 2) Provisioning del segreto DB in base alla biometria
             BiometricHelper.BiometricCapability cap = BiometricHelper.ensureBiometricKey(requireContext());
             if (cap == BiometricHelper.BiometricCapability.NOT_ENROLLED) {
                 // Biometria presente ma non configurata → forzi enrollment (non si prosegue)
@@ -149,7 +163,24 @@ public class CreatePinFragment extends Fragment {
                 provisionDatabaseSecretWithBiometrics();
             } else { // NO_HARDWARE
                 provisionDatabaseSecretWithPinFallback(pin);
+            }*/
+
+            // 2) Controllo Biometria
+            BiometricManager bm = BiometricManager.from(requireContext());
+            int canAuth = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
+
+            if (canAuth == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
+                // Biometria possibile ma non configurata -> Mandiamo l'utente alle impostazioni
+                // Usiamo l'Intent fornito da AuthManager
+                Intent enrollIntent = AuthManager.getInstance(requireContext()).getEnrollmentIntent();
+                enrollLauncher.launch(enrollIntent);
+            } else if (canAuth == BiometricManager.BIOMETRIC_SUCCESS) {
+                provisionDatabaseSecretWithBiometrics();
+            } else {
+                // Hardware non disponibile o altri errori -> Fallback PIN
+                provisionDatabaseSecretWithPinFallback(pin);
             }
+
         });
 
     }
@@ -188,7 +219,10 @@ public class CreatePinFragment extends Fragment {
             // 2) Prepara un Cipher AES/GCM per CIFRARE con la chiave del Keystore.
             //    getEncryptCipher() fa: Cipher.getInstance("AES/GCM/NoPadding") + init(ENCRYPT_MODE, key)
             //    e genera un IV random interno (lo leggerai con cipher.getIV() DOPO il prompt).
-            Cipher enc = BiometricHelper.getEncryptCipher(); // IV random interno
+
+            //Cipher enc = BiometricHelper.getEncryptCipher(); // IV random interno
+            // MODIFIED: Otteniamo il Cipher da AuthManager invece che da BiometricHelper
+            Cipher enc = AuthManager.getInstance(requireContext()).getBiometricEncryptCipher();
             // 3) Costruisci il BiometricPrompt: le callback arrivano sul main thread (executor compat).
             BiometricPrompt prompt = new BiometricPrompt(
                     requireActivity(),
@@ -205,6 +239,10 @@ public class CreatePinFragment extends Fragment {
                                 byte[] iv = armed.getIV();
                                 // 4d) Salva IV + ciphertext a riposo (EncryptedSharedPreferences).
                                 SecurityUtils.saveWrappedDbWithBiometrics(requireContext(), iv, ct);
+
+                                // NEW: Notifichiamo all'AuthManager che la biometria è ufficialmente attiva
+                                AuthManager.getInstance(requireContext()).setBiometricEnabled(true);
+
                                 // 4e) Provisioning completato (solo PIN o PIN+BIO): vai oltre (es. torna al Login).
                                 navigateToLoginClearingAuthGraph();
                             } catch (GeneralSecurityException | IOException e) {
@@ -239,6 +277,8 @@ public class CreatePinFragment extends Fragment {
             Log.e("CreatePin", "Biometric crypto error", e);
             Arrays.fill(passphrase, (byte)0);
             Toast.makeText(requireContext(), "Biometria non disponibile", Toast.LENGTH_SHORT).show();
+            // Se fallisce l'inizializzazione del Cipher, procediamo comunque col PIN (che abbiamo già salvato)
+            navigateToLoginClearingAuthGraph();
         }
     }
 

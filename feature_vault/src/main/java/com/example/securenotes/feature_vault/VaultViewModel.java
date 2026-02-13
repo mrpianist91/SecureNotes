@@ -31,10 +31,11 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
     public LiveData<Uri> viewFileEvent = _viewFileEvent;
 
     // Gestore PIN condiviso da :core
-    private final PinManager pinManager;
+    //private final PinManager pinManager;
+    private final AuthManager authManager;
     // LiveData per comunicare il risultato del PIN alla UI
-    private final MutableLiveData<PinManager.PinResult> _pinResult = new MutableLiveData<>();
-    public LiveData<PinManager.PinResult> pinResult = _pinResult;
+    private final MutableLiveData<AuthManager.AuthResult> _pinResult = new MutableLiveData<>();
+    public LiveData<AuthManager.AuthResult> pinResult = _pinResult;
 
     public VaultViewModel(@NonNull Application application) {
         super(application);
@@ -44,8 +45,8 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
         repository = new VaultRepositoryImpl(dao);
         // 3. Colleghiamo la lista file direttamente a Room
         files = repository.getAllFiles();// appena cambia qualcosa nel DB, questa lista si aggiorna automaticamente e la UI riceve la notifica.
-        // Inizializza il PinManager
-        this.pinManager = new PinManager(application);
+        // Inizializza l'AuthManager
+        this.authManager = AuthManager.getInstance(application);
     }
 
     public boolean isUnlocked() {
@@ -60,7 +61,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
     public void verifyPin(String pin) {
         // Eseguiamo in un thread background se il calcolo hash è pesante (in PinManager)
         new Thread(() -> {
-            PinManager.PinResult result = pinManager.verifyPin(pin);
+            AuthManager.AuthResult result = authManager.verifyPin(pin);
             // Post sul main thread
             _pinResult.postValue(result);
         }).start();

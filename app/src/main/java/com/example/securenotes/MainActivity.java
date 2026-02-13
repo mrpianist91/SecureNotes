@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ProcessLifecycleOwner;
@@ -40,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;     // ViewBinding
     private AppBarConfiguration appBarConfiguration;
+
     // --------------------------------------------------------------------- //
     // Life-cycle
     // --------------------------------------------------------------------- //
@@ -48,6 +50,9 @@ public class MainActivity extends AppCompatActivity {
         Log.d("A", "Main.onCreate START " + this + " t=" + SystemClock.uptimeMillis());
         super.onCreate(savedInstanceState);
         Log.d("A", "Main.onCreate END   " + this + " t=" + SystemClock.uptimeMillis());
+
+        // 1. SICUREZZA GLOBALE: Impedisce screenshot e anteprima nelle app recenti
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
 
         // ----- ViewBinding -------------------------------------------------
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -107,24 +112,6 @@ public class MainActivity extends AppCompatActivity {
 
         // ----- Collega qui il SessionObserver (ora il NavHost esiste) -----
         setupSessionObserver(navController);
-        /*long timeoutMs = new PreferenceManager(this)
-                .getSessionTimeoutMs(3 * 60 * 1000L); // default 3 minuti in ms
-        ProcessLifecycleOwner.get()
-                .getLifecycle()
-                .addObserver(new SessionObserver(navController, timeoutMs));*/
-
-
-        // Avvia/riavvia la sessione quando si "approda" nella schermata delle note,
-        // indipendentemente dal percorso (PIN o biometria).
-        /*navController.addOnDestinationChangedListener((controller, destination, args) -> {
-            if (destination.getId() == R.id.notesListFragment) {
-                //long timeoutMs = new PreferenceManager(this)
-                //        .getSessionTimeoutMs(3 * 60 * 1000L); // default 3'
-                //SessionObserver.startSession(timeoutMs);
-                long toMs = new PreferenceManager(this).getSessionTimeoutMs(3 * 60 * 1000L);
-                SessionObserver.startSession(toMs);
-            }
-        });*/
 
         // ----- Backup di test (solo build DEBUG) --------------------------
         if (BuildConfig.DEBUG) {
@@ -136,14 +123,17 @@ public class MainActivity extends AppCompatActivity {
         long timeoutMs = new PreferenceManager(this)
                 .getSessionTimeoutMs(3 * 60 * 1000L); // default 3 minuti
 
+        // Registra l'observer che ascolta il ciclo di vita dell'INTERO processo (Background/Foreground)
         ProcessLifecycleOwner.get()
                 .getLifecycle()
                 .addObserver(new SessionObserver(navController, timeoutMs));
     }
 
     private void refreshSession() {
-        long toMs = new PreferenceManager(this).getSessionTimeoutMs(3 * 60 * 1000L);
-        SessionObserver.startSession(toMs);
+       /* long toMs = new PreferenceManager(this).getSessionTimeoutMs(3 * 60 * 1000L);
+        SessionObserver.startSession(toMs);*/
+        // Aggiorna il timestamp dell'ultima interazione
+        SessionObserver.resetSessionTimer();
     }
 
     @Override

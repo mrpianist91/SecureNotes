@@ -3,7 +3,6 @@ package com.example.securenotes.feature_vault;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,7 +24,7 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.securenotes.core.PinManager;
+import com.example.securenotes.core.AuthManager;
 import com.example.securenotes.core.VaultFile;
 import com.example.securenotes.core.VaultRepository;
 import com.example.securenotes.feature_vault.databinding.FragmentVaultBinding;
@@ -92,14 +91,14 @@ public class VaultFragment extends Fragment {
         viewModel.pinResult.observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
 
-            if (result == PinManager.PinResult.SUCCESS) {
+            if (result == AuthManager.AuthResult.SUCCESS) {
                 //isUnlocked = true;
                 // SALVIAMO LO STATO NEL VIEWMODEL
                 viewModel.setUnlocked(true);
                 hideKeyboard();
                 unlockUiState();
                 binding.etPin.setText(""); // Pulisci per sicurezza
-            } else if (result == PinManager.PinResult.LOCKED) {
+            } else if (result == AuthManager.AuthResult.LOCKED) {
                 binding.tvStatus.setText("Troppi tentativi. Riprova più tardi.");
                 binding.etPin.setError("Bloccato");
             } else {

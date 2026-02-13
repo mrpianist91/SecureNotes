@@ -73,6 +73,7 @@ dependencies {
     implementation(libs.androidx.navigation.ui)
     implementation(libs.work.runtime)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.biometric)
     //implementation(libs.activity)
     //implementation(libs.constraintlayout)
 

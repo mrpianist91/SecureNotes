@@ -9,18 +9,12 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
-import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.security.crypto.EncryptedSharedPreferences;
-import androidx.security.crypto.MasterKey;
 
-import com.example.securenotes.core.PinManager;
+import com.example.securenotes.core.AuthManager;
 import com.example.securenotes.core.SecurityUtils;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,20 +29,25 @@ public class AuthViewModel extends AndroidViewModel {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    // NUOVO: Delega la logica di verifica
-    private final PinManager pinManager;
+    // NUOVO: Delega la logica di autenticazione
+    //private final PinManager pinManager;
+    private final AuthManager authManager;
 
     /*private int pinFailCount = 0;
     private boolean wasPinExisting = false;*/
-    private static final String KEY_PIN_SALT = "pin_salt";
-    private static final String KEY_PIN_HASH = "pin_hash";
+
+// Chiavi gestite da SecurityUtils/AuthManager)
+    private static final String KEY_PIN_SALT = SecurityUtils.KEY_PIN_SALT;
+    private static final String KEY_PIN_HASH = SecurityUtils.KEY_PIN_HASH;
+
     /*private static final String KEY_FAILS = "pin_fail_count";
     private static final String KEY_LOCK_UNTIL = "pin_lock_until";
     private static final String KEY_BACKOFF_STEP = "pin_backoff_step";*/
 
     public AuthViewModel(@NonNull Application application) {
         super(application);
-        this.pinManager = new PinManager(application);
+        //this.pinManager = new PinManager(application);
+        this.authManager = AuthManager.getInstance(application);
         Log.d("AuthVM", "loginResult id=" + System.identityHashCode(loginResult));
     }
 
@@ -172,8 +171,8 @@ public class AuthViewModel extends AndroidViewModel {
                 Log.d("AuthVM", "emit " + LoginResult.INCORRECT_PIN + " at " + System.nanoTime());
 
             }*/
-            PinManager.PinResult result = pinManager.verifyPin(inputPin);
-
+            //PinManager.PinResult result = pinManager.verifyPin(inputPin);
+            AuthManager.AuthResult result = authManager.verifyPin(inputPin);
             mainHandler.post(() -> {
                 switch (result) {
                     case SUCCESS:
@@ -294,7 +293,7 @@ public class AuthViewModel extends AndroidViewModel {
            /* long until = getLockUntilMillis();
             long now = System.currentTimeMillis();
             return Math.max(0L, until - now);*/
-            return pinManager.getLockRemainingMillis();
+            return authManager.getLockRemainingMillis();
     }
 
 }

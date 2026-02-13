@@ -28,6 +28,7 @@ import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.securenotes.core.AppDatabase;
+import com.example.securenotes.core.AuthManager;
 import com.example.securenotes.core.SecurityUtils;
 import com.example.securenotes.feature_auth.databinding.FragmentLoginBinding;
 import com.scottyab.rootbeer.RootBeer;  // Libreria per rilevare il root (aggiungere dipendenza RootBeer)
@@ -128,16 +129,19 @@ public class LoginFragment extends Fragment {
         BiometricManager biometricManager = BiometricManager.from(requireContext());
         boolean bioAvailable = (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 == BiometricManager.BIOMETRIC_SUCCESS);
+        // NEW: Controlliamo il flag in AuthManager
+        boolean isEnabledInSettings = AuthManager.getInstance(requireContext()).isBiometricEnabled();
         boolean hasBioWrap = SecurityUtils.hasBioWrap(requireContext());
-        if (bioAvailable && hasBioWrap) {
+        if (bioAvailable && isEnabledInSettings && hasBioWrap) {
             showBiometricPromptForDbUnlock();          // prompt con decrypt della busta BIO
             binding.pinGroup.setVisibility(View.GONE); // nasconde PIN finché non serve
             binding.btnUsePin.setVisibility(View.VISIBLE);
         } else {
             // Nessuna busta BIO o hardware non disponibile → vai subito di PIN
-            binding.tvStatus.setText(getString(R.string.login_title));
+           showPinLoginUI();
+            /* binding.tvStatus.setText(getString(R.string.login_title));
             binding.pinGroup.setVisibility(View.VISIBLE);
-            binding.btnUsePin.setVisibility(View.GONE);
+            binding.btnUsePin.setVisibility(View.GONE);*/
         }
 
         // Pulsante "Usa PIN" (fallback esplicito dall'utente)
@@ -176,9 +180,15 @@ public class LoginFragment extends Fragment {
             }
             byte[] iv = wrap.first;
             byte[] ct = wrap.second;
+
             // Cipher in DECRYPT_MODE con l'IV corretto (stessa chiave Keystore del provisioning)
-            BiometricHelper.ensureBiometricKey(requireContext());
-            final Cipher dec = BiometricHelper.getDecryptCipher(iv);
+            //BiometricHelper.ensureBiometricKey(requireContext());
+            //final Cipher dec = BiometricHelper.getDecryptCipher(iv);
+
+            // NEW: Otteniamo il Cipher da AuthManager
+            // Questo metodo lancia KeyPermanentlyInvalidatedException se sono state aggiunte impronte!
+            final Cipher dec = AuthManager.getInstance(requireContext()).getBiometricDecryptCipher(iv);
+
             BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
                     .setTitle(getString(R.string.biometric_prompt_title))
                     .setSubtitle(getString(R.string.biometric_prompt_message))
@@ -224,8 +234,26 @@ public class LoginFragment extends Fragment {
                 }
             }
             ).authenticate(info, new BiometricPrompt.CryptoObject(dec));
+        } catch (android.security.keystore.KeyPermanentlyInvalidatedException e) {
+            // =================================================================
+            // NEW: GESTIONE SICUREZZA "EVIL MAID"
+            // =================================================================
+            Log.e("LoginFragment", "Chiave invalidata: nuove impronte rilevate.", e);
+
+            // 1. Disabilita la biometria nell'app (la chiave crittografica è persa per sempre)
+            AuthManager.getInstance(requireContext()).setBiometricEnabled(false);
+
+            // 2. Avvisa l'utente
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Sicurezza Biometrica")
+                    .setMessage("Sono state rilevate nuove impronte digitali nelle impostazioni del dispositivo. " +
+                            "Per sicurezza, l'accesso biometrico è stato disattivato. Accedi con il PIN.")
+                    .setPositiveButton("OK", (d, w) -> showPinLoginUI())
+                    .setCancelable(false)
+                    .show();
+
         } catch (Exception e) {
-            // Qualsiasi problema di setup → fai fallback al PIN
+            Log.e("LoginFragment", "Errore setup biometria", e);
             showPinLoginUI();
         }
     }
