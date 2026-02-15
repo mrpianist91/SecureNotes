@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
+    <!--FOREGROUND_SERVICE_DATA_SYNC è un permesso speciale di runtime che autorizza l'app a eseguire operazioni
+     di trasferimento dati (upload/download/backup/restore) che devono sopravvivere anche se l'utente chiude l'app.-->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!--Notifica del backup-->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"
+            android:exported="false"
             tools:node="merge" />
     </application>
 </manifest>
+

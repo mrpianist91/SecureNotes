@@ -87,7 +87,7 @@ public class VaultFragment extends Fragment {
 
     /** Configura i listener per la nuova UI unificata (simile a LoginFragment) */
     private void setupAuthUiInteractions() {
-        // 1. Observer risultato PIN (dal ViewModel che usa PinManager)
+        // 1. Observer risultato PIN (dal ViewModel che usa AuthManager)
         viewModel.pinResult.observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
 

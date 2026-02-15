@@ -1,7 +1,12 @@
 package com.example.securenotes;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -10,12 +15,16 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.work.Data;
 
+import com.example.securenotes.backup_worker.BackupWorker;
 import com.example.securenotes.core.Event;
 import com.example.securenotes.databinding.FragmentSettingsBinding; // Generato da Gradle
 import com.google.android.material.snackbar.Snackbar;
@@ -26,6 +35,17 @@ public class SettingsFragment extends Fragment {
 
     // VIEW BINDING: Sostituisce tutti i findViewById
     private FragmentSettingsBinding binding;
+
+    //Launcher per il SAF (File picker per "Creazione File Backup")
+    private ActivityResultLauncher<Intent> exportLauncher;
+
+    // Launcher per la richiesta del permesso notifiche
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                // Indipendentemente dall'esito, procediamo con il SAF.
+                // Se l'utente nega, il backup si farà lo stesso ma senza notifica: non blocchiamo una feature critica (backup) per un permesso accessorio (notifica).
+                openSafFilePicker();
+            });
 
     @Nullable
     @Override
@@ -39,6 +59,20 @@ public class SettingsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
+        //Setup del Launcher
+        exportLauncher = registerForActivityResult(//primo argomento indica “cosa si vuole con l’Intent” (risposta, “avviare un’activity che torna un risultato”); il secondo argomento invece indica la gestione del risultato della richiesta
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {//logica di gestione del risultato tornato dal sistema alla richiesta di creazione (salvataggio) di un file (il nostro backup)
+                    if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();//estrae l’URI del file su cui scriveremo il backup
+                        if (uri != null) {
+                            // Chiedi password backup (Dialog) -> poi avvia worker
+                            showBackupPasswordDialog(uri);
+                        }
+                    }
+                }
+        );
+
 
         // --- INIZIALIZZAZIONE UI ---
         updateTimeoutText(viewModel.getCurrentTimeout());//inserisce il testo del timeout impostato in @+id/tv_timeout_value
@@ -66,7 +100,7 @@ public class SettingsFragment extends Fragment {
 
         // --- OBSERVERS (Reazione) ---
 
-        // 1. Gestione Loading (Blocco UI durante Re-Wrap)
+        // 1. Gestione Loading (Blocco UI durante Re-Wrap) e blocca bottone Backup se Worker in corso
         viewModel.isLoading.observe(getViewLifecycleOwner(), isLoading -> {
             // Esempio: Disabilitiamo i click se sta caricando
             binding.btnChangePin.setEnabled(!isLoading);
@@ -74,7 +108,7 @@ public class SettingsFragment extends Fragment {
             // Se avessi una progressBar nel layout: binding.progressBar.setVisibility(...)
         });
 
-        // 2. Messaggi "one-shot"(Snackbar)
+        // 2. Messaggi "one-shot" (Snackbar)
         viewModel.statusMessage.observe(getViewLifecycleOwner(), event -> {
             String msg = event.getContentIfNotHandled();
             if (msg != null) showMessage(msg);
@@ -88,9 +122,8 @@ public class SettingsFragment extends Fragment {
             }
         });
 
-        // 4. Esecuzione Azione (Step 2: Semaforo Verde)  <-- NUOVO!
-        // Questo risponde alla tua domanda: Chi chiama dispatchAction?
-        // Risposta: Lo chiama questo Observer quando il ViewModel dà l'OK.
+        // 4. Esecuzione Azione (Step 2: Auth superata -> Esegui logica)
+        // Chi chiama dispatchAction? Lo chiama questo Observer quando il ViewModel dà l'OK.
         viewModel.actionToExecute.observe(getViewLifecycleOwner(), event -> {
             SettingsViewModel.PendingAction action = event.getContentIfNotHandled();
             if (action != null) {
@@ -109,10 +142,80 @@ public class SettingsFragment extends Fragment {
                 showOldPinDialog();
                 break;
             case BACKUP:
-                viewModel.triggerBackup();
+                checkNotificationPermissionAndBackup();
+                // Step 2: Auth OK -> Apri File Picker (SAF)
+                //openSafFilePicker();
+                //viewModel.triggerBackup();
                 break;
         }
     }
+
+    private void checkNotificationPermissionAndBackup() {
+        // Il permesso serve solo da Android 13 (API 33) in poi
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
+                    == PackageManager.PERMISSION_GRANTED) {
+                // Permesso già concesso, procedi
+                // Step 2: Auth OK -> Apri File Picker (SAF)
+                openSafFilePicker();
+            } else {
+                // Chiedi il permesso. La callback del launcher chiamerà openSafFilePicker() alla fine.
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        } else {
+            // Android < 13: Permesso concesso all'installazione
+            // Step 2: Auth OK -> Apri File Picker (SAF)
+            openSafFilePicker();
+        }
+    }
+
+    private void openSafFilePicker() {
+        // Apri SAF (file picker) per permettere all’utente dove salvare il file di backup
+        // 1. Creazione dell'Intent (Voglio creare un documento) e salvarlo
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        //il file deve essere apribile
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        //il file sarà un .zip
+        intent.setType("application/zip"); // o "application/octet-stream"
+        //suggeriamo il nome del backup
+        intent.putExtra(Intent.EXTRA_TITLE, "securenotes_backup.snbackup");
+        //eseguiamo l’Intent tramite il launcher definito sopra
+        exportLauncher.launch(intent);
+
+    }
+
+    // Metodo Dialog Password
+    private void showBackupPasswordDialog(Uri destUri) {
+//Creiamo il campo di input per inserire la password del backup
+        EditText input = new EditText(requireContext());
+//il testo inserito sarà generico (alfanumerico)
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);//Il testo verrà “nascosto” dai pallini
+        //Costruiamo la dialog
+        new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Imposta Password Backup")
+                .setMessage("Questa password servirà per ripristinare i dati. Non dimenticarla!")
+                .setView(input)//injection dell’input nella view
+                .setPositiveButton("Avvia", (d, w) -> {//(d,w) sono i parametri del metodo onClick() che implementiamo dell'interfaccia OnClickListener
+//"d" è la dialog stessa, "w" è l'ID del tasto premuto (potrebbe servire se avessimo più pulsanti)
+
+                    String pwd = input.getText().toString();//prendiamo la password digitata dall’utente dall’EditText
+                    if (pwd.length() < 8) {
+                        Toast.makeText(requireContext(), "Password troppo corta (min 8 char)", Toast.LENGTH_SHORT).show();
+                    } else {
+                        // Step 4 Finale: Costruisci Dati e chiama ViewModel
+                        Data inputData = new Data.Builder()
+                                .putString(BackupWorker.KEY_URI, destUri.toString())
+                                .putString(BackupWorker.KEY_PASSWORD, pwd)
+                                .build();
+
+                        // Il metodo triggerBackup lancia il Worker -> ENQUEUED -> isLoading=true
+                        viewModel.triggerBackup(inputData);
+                    }
+                })
+                .setNegativeButton("Annulla", null)
+                .show();
+    }
+
 
     // --- BIOMETRIA ---
     private void launchBiometricPrompt(SettingsViewModel.PendingAction action) {

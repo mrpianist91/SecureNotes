@@ -7,6 +7,9 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkInfo;
@@ -18,6 +21,7 @@ import com.example.securenotes.core.Event;
 import com.example.securenotes.core.PreferenceManager;
 import com.example.securenotes.core.SecurityUtils;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -47,6 +51,10 @@ public class SettingsViewModel extends AndroidViewModel {
     private final AuthManager authManager;//gestisce la logica reale (Keystore, PIN, contatori)
     private final PreferenceManager prefsManager;// Gestisce l’EncryptedSharedPreference
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final WorkManager workManager; // NEW: Istanza WorkManager
+
+    // NEW: Observer mantenuto come campo per poterlo rimuovere se necessario (opzionale in VM)
+    private final Observer<List<WorkInfo>> backupObserver;
 
     // Enum per tracciare cosa l'utente voleva fare prima/dopo del controllo biometrico
     public enum PendingAction { CHANGE_PIN, BACKUP }
@@ -56,6 +64,36 @@ public class SettingsViewModel extends AndroidViewModel {
         Context context = application.getApplicationContext();
         this.authManager = AuthManager.getInstance(context);
         this.prefsManager = new PreferenceManager(context);
+        this.workManager = WorkManager.getInstance(context);
+
+        // NEW: Inizializza l'Observer per il Backup
+        backupObserver = workInfos -> {
+            if (workInfos == null || workInfos.isEmpty()) return;
+
+            WorkInfo info = workInfos.get(0);
+            WorkInfo.State state = info.getState();
+
+            // LOGICA DI STATO RICHIESTA:
+            // 1. RUNNING/ENQUEUED -> isLoading = true (Blocca UI)
+            boolean isWorking = (state == WorkInfo.State.RUNNING || state == WorkInfo.State.ENQUEUED);
+            _isLoading.setValue(isWorking);
+
+            // 2. SUCCEEDED -> isLoading = false (già fatto sopra) + Messaggio Successo
+            if (state == WorkInfo.State.SUCCEEDED) {
+                _statusMessage.setValue(new Event<>("Backup completato con successo!"));
+                // Opzionale: Pulisce lo stato per evitare messaggi ripetuti al riavvio
+                workManager.pruneWork();
+            }
+            // 3. FAILED -> Messaggio Errore (estratto dai Data)
+            else if (state == WorkInfo.State.FAILED) {
+                String error = info.getOutputData().getString("error");
+                _statusMessage.setValue(new Event<>("Backup fallito: " + (error != null ? error : "Errore generico")));
+            }
+        };
+
+        // NEW: Attiva l'osservazione "Forever" (poiché siamo nel ViewModel e non abbiamo un LifecycleOwner View)
+        // Usiamo il tag univoco "backup_unique" che definiremo nel triggerBackup
+        workManager.getWorkInfosForUniqueWorkLiveData("backup_unique").observeForever(backupObserver);
     }
 
     // ================== LOGICA UTENTE ==================
@@ -65,6 +103,9 @@ public class SettingsViewModel extends AndroidViewModel {
      * Decide se serve Biometria o se procedere diretti.
      */
     public void onSensitiveActionClicked(PendingAction action) {
+        // NEW: Se stiamo caricando (es. backup in corso), ignora i click
+        if (Boolean.TRUE.equals(_isLoading.getValue())) return;
+
         if (authManager.isBiometricEnabled()) {
             // Chiedi al Fragment di mostrare il prompt
             _authRequest.setValue(new Event<>(action));
@@ -138,20 +179,25 @@ public class SettingsViewModel extends AndroidViewModel {
      * Avvia il Backup tramite WorkManager.
      * Deleghiamo un lavoro la gestione al WorkManager.
      */
-    public void triggerBackup() {
+    public void triggerBackup(Data inputData) {
 //Richiediamo un lavoro da svolgere solo una volta e basta (OneTime…).
         OneTimeWorkRequest backupRequest = new OneTimeWorkRequest.Builder(BackupWorker.class)
+                .setInputData(inputData) // Riceve URI e Password dal Fragment
                 .addTag("backup_work")//è un’etichetta che serve per sovrascrivere eventuali “backup_work” ancora attivi (ad esempio se l’utente clicca l’opzione più volte)
                 .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)// In caso lo smartphone fosse in modalità Doze (risparmio energetico) questo metodo dice al sistema che il lavoro/backup è urgente, e va eseguito quanto prima. Solo che l’urgenza si basa su un sistema di quote/crediti. Se l’app non ha crediti a sufficienza però la policy che passiamo dice di eseguirlo lo stesso come NON_EXPEDITED_WORK)
                 .build();
 
-//Delegando al WorkManager, qualsiasi cosa succeda all’app una volta avviato il backup, non dobbiamo preoccuparcene, sappiamo che verrà portato a termine.
-        WorkManager.getInstance(getApplication()).enqueue(backupRequest);
+/// NEW: Usiamo enqueueUniqueWork con REPLACE.
+        // Questo garantisce che ci sia UN SOLO lavoro attivo con questo nome.
+        // Appena chiamato, lo stato diventa ENQUEUED e l'observer sopra blocca la UI.
+        workManager.enqueueUniqueWork("backup_unique", ExistingWorkPolicy.REPLACE, backupRequest);
+
+        // Non serve settare _statusMessage qui, l'observer gestirà tutto.
 
         // Monitoriamo lo stato del Worker per aggiornare la UI?
         // Possiamo farlo qui o lasciare che il Fragment osservi il WorkManager.
         // Per semplicità, notifichiamo l'avvio.
-        _statusMessage.setValue(new Event<>("Backup avviato in background..."));
+        //_statusMessage.setValue(new Event<>("Backup avviato in background..."));
     }
 
     // ================== PREFERENZE ==================
@@ -183,5 +229,7 @@ public class SettingsViewModel extends AndroidViewModel {
     protected void onCleared() {
         super.onCleared();
         executor.shutdown(); // Pulizia thread
+        // NEW: Importante rimuovere l'observerForever per evitare leak se il VM viene distrutto
+        workManager.getWorkInfosForUniqueWorkLiveData("backup_unique").removeObserver(backupObserver);
     }
 }
