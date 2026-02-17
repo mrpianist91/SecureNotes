@@ -57,7 +57,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
         this.isUnlocked = unlocked;
     }
 
-    // NUOVO METODO: Verifica PIN
+    // Verifica PIN
     public void verifyPin(String pin) {
         // Eseguiamo in un thread background se il calcolo hash è pesante (in PinManager)
         new Thread(() -> {

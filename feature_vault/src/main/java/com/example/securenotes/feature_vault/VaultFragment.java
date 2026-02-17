@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.securenotes.core.AuthManager;
+import com.example.securenotes.core.SystemInteractionListener;
 import com.example.securenotes.core.VaultFile;
 import com.example.securenotes.core.VaultRepository;
 import com.example.securenotes.feature_vault.databinding.FragmentVaultBinding;
@@ -38,6 +39,27 @@ public class VaultFragment extends Fragment {
     private VaultViewModel viewModel;
     private VaultAdapter adapter;
 
+    // Listener per comunicare con l'Activity (Sessione)
+    //private VaultInteractionListener interactionListener;
+
+    // Listener per comunicare con l'Activity (Sessione)
+    private SystemInteractionListener interactionListener;
+    // --- 1. Gestione Attach/Detach del Listener ---
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        if (context instanceof SystemInteractionListener) {
+            interactionListener = (SystemInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString() + " deve implementare VaultInteractionListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        interactionListener = null;
+    }
     // Stato del Gatekeeper: default FALSE (bloccato)...passato al VaultViewModel per bug su rotazione schermo!
     //private boolean isUnlocked = false;
 
@@ -48,6 +70,8 @@ public class VaultFragment extends Fragment {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     viewModel.importFile(result.getData().getData());
                 }
+                // Nota: Non serve reimpostare nulla qui. Al ritorno, onStart() del SessionObserver
+                // troverà la sessione ancora valida (perché non invalidata in onStop) e riprenderà il timer.
             }
     );
 
@@ -252,6 +276,10 @@ public class VaultFragment extends Fragment {
 
         // FAB Import
         binding.fabAddFile.setOnClickListener(v -> {
+            // AVVISA IL SESSION OBSERVER DI NON BLOCCARE L'APP DURANTE LA SCHERMATA DI IMPORTAZIONE
+            if (interactionListener != null) {
+                interactionListener.onSystemInteraction();
+            }
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
@@ -267,6 +295,10 @@ public class VaultFragment extends Fragment {
 
         viewModel.viewFileEvent.observe(getViewLifecycleOwner(), uri -> {
             if (uri != null) {
+                // ANCHE QUI serve avvisare il Session observer, perché ACTION_VIEW apre un'app esterna
+                if (interactionListener != null) {
+                    interactionListener.onSystemInteraction();
+                }
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setDataAndType(uri, requireContext().getContentResolver().getType(uri));
                 intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

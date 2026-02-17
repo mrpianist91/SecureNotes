@@ -1,6 +1,7 @@
 package com.example.securenotes.feature_auth;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -44,6 +45,27 @@ public class LoginFragment extends Fragment {
     private AuthViewModel authViewModel;
     private Handler handler = new Handler(Looper.getMainLooper());
     private CountDownTimer lockTimer;
+
+    // Callback verso l'Activity per notificare il successo del login al SessionObserver.
+    private AuthListener authListener;
+    /*onAttach(Context context) è il primo metodo del ciclo di vita del Fragment a essere invocato. Il Fragment viene associato al suo Host (l'Activity). Il parametro context passato dal sistema è l'Activity ospitante. onAttach() rappresenta l'inizializzazione delle dipendenze esterne (il genitore), mentre onCreate dovrebbe occuparsi dell'inizializzazione dello stato interno del Fragment (variabili, ViewModel, ecc.).*/
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        // Recupera il listener della (Main)Activity (context) ospitante per poter notificare il successo del processo di autenticazione al Main
+        if (context instanceof AuthListener) {
+            authListener = (AuthListener) context;//la MainActivity implementa l’interface AuthListener
+        } else {
+            throw new RuntimeException(context.toString() + " deve implementare AuthListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        authListener = null; // Evita memory leaks
+    }
+
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -104,6 +126,8 @@ public class LoginFragment extends Fragment {
                            // Apre il database cifrato con la passphrase ottenuta
                             AppDatabase.openWithPassphrase(requireContext(), passphrase);
                             SecurityUtils.zeroize(passphrase); // Pulisce la passphrase dopo l'uso
+                            //Notifica successo PIN per l'Observer
+                            notifyLoginSuccess();
                         }
                     } catch (GeneralSecurityException e) {
                         Toast.makeText(requireContext(), "Errore decrittazione database", Toast.LENGTH_LONG).show();
@@ -112,8 +136,8 @@ public class LoginFragment extends Fragment {
                     }
                 }
                 // Naviga alla schermata principale (lista note), rimuovendo le schermate di auth dallo stack
-                NavController nav = NavHostFragment.findNavController(LoginFragment.this);
-                nav.navigate(R.id.action_loginFragment_to_notesListFragment);
+                //NavController nav = NavHostFragment.findNavController(LoginFragment.this);
+                //nav.navigate(R.id.action_loginFragment_to_notesListFragment);
             } else if (result == AuthViewModel.LoginResult.LOCKED) {
                 // lock con durata variabile, basato su KEY_LOCK_UNTIL
                 startLockCountdown(authViewModel.getLockRemainingMillis());
@@ -210,9 +234,11 @@ public class LoginFragment extends Fragment {
                         // Apre il database cifrato con SQLCipher (istanza singleton)
                         AppDatabase.openWithPassphrase(requireContext(), pass);
                         SecurityUtils.zeroize(pass); // se non la usi qui, azzera per sicurezza
+                        //Notifica successo Biometrico
+                        notifyLoginSuccess();
                         // Naviga avanti (lo stack auth viene pulito dall'action nel grafo)
-                        NavController nav = NavHostFragment.findNavController(LoginFragment.this);
-                        nav.navigate(R.id.action_loginFragment_to_notesListFragment);
+                        //NavController nav = NavHostFragment.findNavController(LoginFragment.this);
+                        //nav.navigate(R.id.action_loginFragment_to_notesListFragment);
                     } catch (GeneralSecurityException e) {
                         Toast.makeText(requireContext(), R.string.bio_generic_crypto_error, Toast.LENGTH_SHORT).show();
                         showPinLoginUI();
@@ -256,6 +282,18 @@ public class LoginFragment extends Fragment {
             Log.e("LoginFragment", "Errore setup biometria", e);
             showPinLoginUI();
         }
+    }
+
+    /** Helper centralizzato per gestire il successo del login */
+    private void notifyLoginSuccess() {
+        // 1. Notifica l'Activity (che avvierà SessionObserver)
+        if (authListener != null) {
+            authListener.onAuthSuccess();
+        }
+
+        // 2. Naviga alla schermata Note, rimuovendo le schermate di auth dallo stack
+        NavController nav = NavHostFragment.findNavController(LoginFragment.this);
+        nav.navigate(R.id.action_loginFragment_to_notesListFragment);
     }
 
 

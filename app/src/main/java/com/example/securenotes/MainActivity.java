@@ -13,11 +13,15 @@ import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.securenotes.backup_worker.BackupWorker;
 import com.example.securenotes.core.PreferenceManager;
+import com.example.securenotes.core.SystemInteractionListener;
 import com.example.securenotes.databinding.ActivityMainBinding;
 
 import androidx.lifecycle.ViewModelProvider;
+
+import com.example.securenotes.feature_auth.AuthListener;
 import com.example.securenotes.feature_auth.AuthViewModel;
 import com.example.securenotes.feature_auth.AuthViewModel.LoginResult;
+import com.example.securenotes.feature_vault.VaultInteractionListener;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import androidx.navigation.ui.AppBarConfiguration;
@@ -37,10 +41,47 @@ import java.util.Set;
  * - Visibilità condizionale della UI (BottomNav visibile solo nei fragment principali).
  * - Avvio del SessionObserver per il timeout di sicurezza.
  */
-public class MainActivity extends AppCompatActivity {
+/**
+ * Implementa "AuthListener" per gestire l'avvio della sessione
+ * quando il LoginFragment segnala il successo (Principio di Inversione della Dipendenza) tramite Callback/Listener
+ *
+ * Implementa "SystemInteractionListener" per evitare che durante le operazioni SAF (Storage Access Framework) l'utente venga forzato al logout: 1) al rientro dal FilePicker nelle Impostazioni (durante il Backup),
+ * e 2) dopo la conferma sul file da importare nel Vault, il main vada in Stop bloccando la sessione (forzando di conseguenza una nuova autenticazione).
+ * ANALISI DEL PROBLEMA: la MainActivity va in Pausa o Stop durante le operazioni del File Picker, e dal momento che il SessionObserver segue una politica di "zero trust", butterebbe fuori l'utente.
+ * NB nel caso dell'interfaccia SystemInteractionListener, si è preferita definirla nel modulo condiviso (incluso) sia dal modulo :app che :feature_vault, cioè il modulo :core, in modo che fosse visibile a tutti
+ */
+
+public class MainActivity extends AppCompatActivity implements AuthListener, SystemInteractionListener {
 
     private ActivityMainBinding binding;     // ViewBinding
     private AppBarConfiguration appBarConfiguration;
+
+    //Implementazione AuthListener per SessionObserver
+    @Override
+    public void onAuthSuccess() {
+        // Recupera il timeout dalle preferenze
+        long timeoutMs = new PreferenceManager(this).getSessionTimeoutMs();
+        // Avvia il SessionObserver (possibile perché siamo nel modulo :app)
+        SessionObserver.startSession(timeoutMs);
+        Log.d("MainActivity", "Sessione avviata con timeout: " + timeoutMs);
+    }
+
+    // Implementazione VaultInteractionListener per SessionObserver
+    /*@Override
+    public void onVaultExternalAction() {
+        // Segnala all'Observer di ignorare il prossimo "onStop" (causato dall'Intent esterno generato quando si aggiungono file al vault)
+        SessionObserver.setIgnoreNextPause();
+    }*/
+
+    // --- Implementazione SystemInteractionListener ---
+    @Override
+    public void onSystemInteraction() {
+        // Segnala all'Observer di ignorare il prossimo "onStop"
+        // Questo metodo viene chiamato sia dal Vault (apertura file/import)
+        // sia dai Settings (export backup)
+        SessionObserver.setIgnoreNextPause();
+    }
+
 
     // --------------------------------------------------------------------- //
     // Life-cycle
@@ -93,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
         NavigationUI.setupWithNavController(binding.bottomNav, navController);
 
         // 6. GATEKEEPER VISIVO (Gestione Visibilità BottomBar)
-        // La barra deve apparire SOLO nelle destinazioni principali.
+        // La barra deve apparire SOLO nelle destinazioni principali (Top Level).
         // Deve sparire in: Splash, Login, Onboarding, Modifica Nota, etc.
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
             int id = destination.getId();
@@ -123,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
         long timeoutMs = new PreferenceManager(this)
                 .getSessionTimeoutMs(3 * 60 * 1000L); // default 3 minuti
 
-        // Registra l'observer che ascolta il ciclo di vita dell'INTERO processo (Background/Foreground)
+        // Registra l'observer che ascolta il ciclo di vita dell'INTERO processo (Background/Foreground). ProcessLifecycleOwner chiama onStart/onStop del SessionObserver
         ProcessLifecycleOwner.get()
                 .getLifecycle()
                 .addObserver(new SessionObserver(navController, timeoutMs));

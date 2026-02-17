@@ -47,13 +47,17 @@ public class SettingsViewModel extends AndroidViewModel {
     private final MutableLiveData<Event<PendingAction>> _actionToExecute = new MutableLiveData<>();
     public LiveData<Event<PendingAction>> actionToExecute = _actionToExecute;
 
+    // Auth Fallback - Risultato verifica PIN manuale da comunicare/osservato dal Fragment
+    private final MutableLiveData<Event<AuthManager.AuthResult>> _authPinResult = new MutableLiveData<>();
+    public LiveData<Event<AuthManager.AuthResult>> authPinResult = _authPinResult;
+
     // --- Dipendenze ---
     private final AuthManager authManager;//gestisce la logica reale (Keystore, PIN, contatori)
     private final PreferenceManager prefsManager;// Gestisce l’EncryptedSharedPreference
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final WorkManager workManager; // NEW: Istanza WorkManager
+    private final WorkManager workManager; // Istanza WorkManager
 
-    // NEW: Observer mantenuto come campo per poterlo rimuovere se necessario (opzionale in VM)
+    // Observer mantenuto come campo per poterlo rimuovere se necessario (opzionale in VM)
     private final Observer<List<WorkInfo>> backupObserver;
 
     // Enum per tracciare cosa l'utente voleva fare prima/dopo del controllo biometrico
@@ -99,11 +103,11 @@ public class SettingsViewModel extends AndroidViewModel {
     // ================== LOGICA UTENTE ==================
 
     /**
-     * Chiamato quando l'utente clicca su un'azione sensibile (ad es. il Backup.
+     * Chiamato quando l'utente clicca su un'azione sensibile (Cambio PIN o Backup).
      * Decide se serve Biometria o se procedere diretti.
      */
     public void onSensitiveActionClicked(PendingAction action) {
-        // NEW: Se stiamo caricando (es. backup in corso), ignora i click
+        // Se stiamo caricando (es. backup in corso), ignora i click
         if (Boolean.TRUE.equals(_isLoading.getValue())) return;
 
         if (authManager.isBiometricEnabled()) {
@@ -111,12 +115,12 @@ public class SettingsViewModel extends AndroidViewModel {
             _authRequest.setValue(new Event<>(action));
         } else {
             // Niente biometria, procedi direttamente (o chiedi PIN vecchio)
-            proceedWithAction(action);//In realtà è solo un metodo per indicare che tutto è andato a buon fine (guarda il metodo PER CAPIRE).
+            proceedWithAction(action);
         }
     }
 
     /**
-     * Chiamato dal Fragment quando la biometria ha avuto successo.
+     * Chiamato dal Fragment quando la biometria ha avuto successo (OPPURE se l'auth tramite pin ha avuto successo nel caso "Esporta backup cifrato").
      */
     public void onBiometricSuccess(PendingAction action) {
         proceedWithAction(action);
@@ -137,6 +141,20 @@ public class SettingsViewModel extends AndroidViewModel {
         // In un MVVM puro, anche la visualizzazione del Dialog dovrebbe essere un Evento,
         // ma per pragmatismo lasciamo che il Fragment gestisca i Dialog di input
         // e chiami il ViewModel per l'esecuzione finale.
+    }
+
+    //Auth Fallback - Verifica il PIN tramite AuthManager in background (CASO "Esporta backup cifrato")
+    public void verifyAuthPin(String pin) {
+        _isLoading.setValue(true); // Feedback visivo immediato
+        executor.execute(() -> {
+            try {
+                // Utilizza la logica centralizzata di core:AuthManager (Hash check + Lockout)
+                AuthManager.AuthResult result = authManager.verifyPin(pin);
+                _authPinResult.postValue(new Event<>(result));
+            } finally {
+                _isLoading.postValue(false);
+            }
+        });
     }
 
     // ================== OPERAZIONI CRITICHE ==================

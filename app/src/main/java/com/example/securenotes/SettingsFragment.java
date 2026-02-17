@@ -2,6 +2,7 @@ package com.example.securenotes;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -24,7 +25,9 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.work.Data;
 
+import com.example.securenotes.core.SystemInteractionListener;
 import com.example.securenotes.backup_worker.BackupWorker;
+import com.example.securenotes.core.AuthManager;
 import com.example.securenotes.core.Event;
 import com.example.securenotes.databinding.FragmentSettingsBinding; // Generato da Gradle
 import com.google.android.material.snackbar.Snackbar;
@@ -39,6 +42,27 @@ public class SettingsFragment extends Fragment {
     //Launcher per il SAF (File picker per "Creazione File Backup")
     private ActivityResultLauncher<Intent> exportLauncher;
 
+    // Listener per segnalare l'azione esterna
+    private SystemInteractionListener interactionListener;
+
+    // --- GESTIONE LISTENER (DEPENDENCY INVERSION) per evitare che al ritorno dal file picker, l'app venga interrotta ---
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        if (context instanceof SystemInteractionListener) {
+            interactionListener = (SystemInteractionListener) context;
+        } else {
+            // Nota: Non crashiamo qui se non è strettamente obbligatorio per tutto,
+            // ma per il backup è necessario.
+            // throw new RuntimeException(context.toString() + " deve implementare SystemInteractionListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        interactionListener = null;
+    }
     // Launcher per la richiesta del permesso notifiche
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -70,6 +94,7 @@ public class SettingsFragment extends Fragment {
                             showBackupPasswordDialog(uri);
                         }
                     }
+                    // Al rientro, SessionObserver vedrà che era un'azione autorizzata e non invaliderà la sessione.
                 }
         );
 
@@ -130,6 +155,23 @@ public class SettingsFragment extends Fragment {
                 dispatchAction(action);
             }
         });
+        //Auth Fallback - Observer del risultato verifica PIN
+        viewModel.authPinResult.observe(getViewLifecycleOwner(), event -> {
+            AuthManager.AuthResult result = event.getContentIfNotHandled();
+            if (result == null) return;
+
+            if (result == AuthManager.AuthResult.SUCCESS) {
+                // Autenticazione riuscita! Procediamo COME SE la biometria fosse passata.
+                // Usiamo il metodo del VM per rientrare nel flusso standard
+                viewModel.onBiometricSuccess(SettingsViewModel.PendingAction.BACKUP);
+            } else if (result == AuthManager.AuthResult.LOCKED) {
+                showMessage("Troppi tentativi. Riprova più tardi.");
+            } else {
+                showMessage("PIN Errato.");
+                // Opzionale: Riaprire la dialog? Per ora chiudiamo e mostriamo errore.
+            }
+        });
+
     }
 
     /**
@@ -171,7 +213,11 @@ public class SettingsFragment extends Fragment {
 
     private void openSafFilePicker() {
         // Apri SAF (file picker) per permettere all’utente dove salvare il file di backup
-        // 1. Creazione dell'Intent (Voglio creare un documento) e salvarlo
+        // 1. AVVISIAMO IL SESSION OBSERVER (tramite Activity)
+        if (interactionListener != null) {
+            interactionListener.onSystemInteraction();
+        }
+        // 2. Creazione dell'Intent (Voglio creare un documento) e salvarlo
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         //il file deve essere apribile
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -233,24 +279,61 @@ public class SettingsFragment extends Fragment {
                     @Override
                     public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
                         super.onAuthenticationError(errorCode, errString);
-                        if (errorCode != androidx.biometric.BiometricPrompt.ERROR_USER_CANCELED &&
+                        /*if (errorCode != androidx.biometric.BiometricPrompt.ERROR_USER_CANCELED &&
                                 errorCode != androidx.biometric.BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                            viewModel.onBiometricError(errString.toString());
+                        }*/
+                        // Auth Fallback - Gestione bottone negativo ("Usa PIN")
+                        if (errorCode == androidx.biometric.BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                            // Se l'azione era il Backup, mostriamo il dialog di autenticazione PIN.
+                            // Se era Change PIN, non serve (ha già il suo flusso old pin).
+                            if (action == SettingsViewModel.PendingAction.BACKUP) {
+                                showPinAuthDialog();
+                            }
+                        } else if (errorCode != androidx.biometric.BiometricPrompt.ERROR_USER_CANCELED) {
                             viewModel.onBiometricError(errString.toString());
                         }
                     }
                 });
 
-        androidx.biometric.BiometricPrompt.PromptInfo info = new androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+        androidx.biometric.BiometricPrompt.PromptInfo.Builder info = new androidx.biometric.BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Conferma Identità")
                 .setSubtitle("Autenticati per procedere")
-                .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG)
-                .setNegativeButtonText("Annulla")
-                .build();
-
-        prompt.authenticate(info);
+                .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG);
+                //.setNegativeButtonText("Annulla")
+                //.build();
+        // Se l'azione è BACKUP, mostriamo il bottone "Usa PIN" (Negative Button)
+        // Se è CHANGE_PIN, usiamo "Annulla" perché il Change PIN ha già la sua logica di richiesta vecchio pin separata.
+        if (action == SettingsViewModel.PendingAction.BACKUP) {
+            info.setNegativeButtonText("Usa PIN");
+        } else {
+            info.setNegativeButtonText("Annulla");
+        }
+        prompt.authenticate(info.build());
     }
 
     // --- DIALOG ---
+
+    //Auth Fallback - Dialog per inserimento PIN di autenticazione (CASO "Esporta Backup")
+    private void showPinAuthDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Autenticazione");
+        builder.setMessage("Inserisci il PIN dell'app per procedere con il backup:");
+
+        final EditText input = new EditText(requireContext());
+        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        builder.setView(input);
+
+        builder.setPositiveButton("Conferma", (d, w) -> {
+            String pin = input.getText().toString();
+            if (!pin.isEmpty()) {
+                // Passiamo il PIN al ViewModel per la verifica sicura
+                viewModel.verifyAuthPin(pin);
+            }
+        });
+        builder.setNegativeButton("Annulla", null);
+        builder.show();
+    }
 
     private void showOldPinDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
@@ -273,7 +356,7 @@ public class SettingsFragment extends Fragment {
     private void showNewPinDialog(String oldPin) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Nuovo PIN");
-        builder.setMessage("Inserisci il NUOVO PIN (min 6 cifre):");
+        builder.setMessage("Inserisci il NUOVO PIN (min 8 cifre):");
 
         final EditText input = new EditText(requireContext());
         input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
