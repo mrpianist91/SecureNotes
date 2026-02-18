@@ -289,8 +289,8 @@ public class AuthViewModel extends AndroidViewModel {
         // Sotto la lunghezza minima mostriamo 0 (chiarissimo all'utente)
         if (len < minLen) return 0;
 
-        // Base dalla lunghezza: cresce fino a circa 96 a 8 cifre, poi cappata
-        int score = Math.min(len * 12, 96);
+        // Base dalla lunghezza: cresce fino a 80 a 8 cifre, poi cappata
+        int score = Math.min(len * 10, 80);
 
         // Pattern deboli: tutti uguali, sequenza ascendente o discendente, poche cifre distinte
         boolean allSame = true;
@@ -309,8 +309,19 @@ public class AuthViewModel extends AndroidViewModel {
         int unique = 0;
         for (boolean b : seen) if (b) unique++;
 
-        if (allSame || ascending || descending) {
-            score = Math.min(score, 20);     // es. 111111, 123456, 654321
+        // Blocco ripetuto: es. "12341234", "56785678"
+        boolean repeatedBlock = false;
+        for (int p = 1; p <= len / 2; p++) {
+            if (len % p != 0) continue;
+            String block = pin.substring(0, p);
+            boolean rep = true;
+            for (int j = p; j < len; j += p)
+                if (!pin.startsWith(block, j)) { rep = false; break; }
+            if (rep) { repeatedBlock = true; break; }
+        }
+
+        if (allSame || ascending || descending || repeatedBlock) {
+            score = Math.min(score, 20);     // es. 111111, 123456, 654321, 12341234
         } else if (unique <= 2) {
             score = Math.min(score, 40);     // usa solo 1-2 cifre diverse complessivamente
         }
@@ -319,7 +330,7 @@ public class AuthViewModel extends AndroidViewModel {
         }
 
         // Piccolo bonus se abbastanza lungo e non banale
-        if (!(allSame || ascending || descending) && unique >= 3 && len >= minLen + 2) {
+        if (!repeatedBlock && !(allSame || ascending || descending) && unique >= 4 && len >= minLen + 2) {
             score = Math.min(score + 8, 100);
         }
         return Math.max(0, Math.min(score, 100));
