@@ -269,7 +269,7 @@ public class CreatePinFragment extends Fragment {
             }
         });
 
-        // --- FIX NAVIGAZIONE TOOLBAR (FRECCIA INDIETRO) ---
+        // NAVIGAZIONE TOOLBAR (FRECCIA INDIETRO)
         // Recuperiamo la Toolbar dell'Activity
         com.google.android.material.appbar.MaterialToolbar toolbar =
                 requireActivity().findViewById(getResources().getIdentifier("toolbar", "id", requireContext().getPackageName()));
@@ -342,7 +342,8 @@ public class CreatePinFragment extends Fragment {
             //    e genera un IV random interno (lo leggerai con cipher.getIV() DOPO il prompt).
 
             //Cipher enc = BiometricHelper.getEncryptCipher(); // IV random interno
-            // MODIFIED: Otteniamo il Cipher da AuthManager invece che da BiometricHelper
+
+            //Otteniamo il Cipher da AuthManager invece che da BiometricHelper
             Cipher enc = AuthManager.getInstance(requireContext()).getBiometricEncryptCipher();
             // 3) Costruisci il BiometricPrompt: le callback arrivano sul main thread (executor compat).
             BiometricPrompt prompt = new BiometricPrompt(
@@ -382,7 +383,7 @@ public class CreatePinFragment extends Fragment {
                             navigateToLoginClearingAuthGraph();
                         }
                     });
-            // 6) Configura il prompt: SOLO biometria "strong", coerente con la tua policy.
+            // 6) Configura il prompt: SOLO biometria "strong", coerente con la policy.
             BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
                     .setTitle("Proteggi SecureNotes")
                     .setSubtitle("Autenticati per proteggere la chiave del database")

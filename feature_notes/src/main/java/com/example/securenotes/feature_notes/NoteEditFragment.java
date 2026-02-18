@@ -40,8 +40,8 @@ public class NoteEditFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Transizioni Material Shared Axis per entrata/uscita
-        setEnterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, /* forward= */ true));
-        setReturnTransition(new MaterialSharedAxis(MaterialSharedAxis.X, /* forward= */ false));
+        setEnterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, true));
+        setReturnTransition(new MaterialSharedAxis(MaterialSharedAxis.X,  false));
     }
 
     @Override
@@ -144,7 +144,7 @@ public class NoteEditFragment extends Fragment {
                         saveAndExit();
                     }
                 });
-        // 2. FIX CRITICO: Intercetta la freccia "Up" nella Toolbar (App Bar)
+        // 2.Intercetta la freccia "Up" nella Toolbar (App Bar)
         // Recuperiamo la Toolbar dall'Activity.
         // Cerchiamo la risorsa chiamata "toolbar" di tipo "id" nel package dell'applicazione ospitante.
         int toolbarId = getResources().getIdentifier("toolbar", "id", requireContext().getPackageName());

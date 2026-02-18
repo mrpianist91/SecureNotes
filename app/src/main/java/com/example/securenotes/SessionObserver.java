@@ -39,9 +39,7 @@ import androidx.navigation.NavOptions;
 
 /**
  * SessionObserver: Gestore del ciclo di vita della sessione di sicurezza.
- *
- * FIX APPLICATO:
- * Implementa DefaultLifecycleObserver invece di ActivityLifecycleCallbacks.
+ * Implementa DefaultLifecycleObserver (onStart, onStop, onPause ecc)
  * Questo permette a ProcessLifecycleOwner di invocare correttamente onStart (Foreground)
  * e onStop (Background).
  */
@@ -59,7 +57,7 @@ public class SessionObserver implements DefaultLifecycleObserver {
         invalidateSession();
     };
 
-    /* ───────────────────────── Stato Globale ───────────────────────── */
+    /*Stato Globale*/
     // Indica se l'utente è attualmente autenticato e la sessione è valida
     private static boolean isSessionValid = false;
 
@@ -73,7 +71,7 @@ public class SessionObserver implements DefaultLifecycleObserver {
         sessionTimeoutMs = timeoutMs;
     }
 
-    /* ───────────────────────── API Pubbliche ───────────────────────── */
+    /*API Pubbliche*/
 
     /**
      * Da chiamare SOLO dopo un Login (PIN o Biometrico) avvenuto con successo.
@@ -122,7 +120,7 @@ public class SessionObserver implements DefaultLifecycleObserver {
         ignoreNextPause = true;
     }
 
-    /* ───────────────────────── Gestione Ciclo di Vita (FIX) ───────────────────────── */
+    /*Gestione Ciclo di Vita */
 
     /**
      * onStart: Scatta quando l'app entra in FOREGROUND (l'utente apre l'app).
@@ -161,7 +159,7 @@ public class SessionObserver implements DefaultLifecycleObserver {
             return;
         }
 
-        // 2. CRITICO: Invalida la sessione immediatamente.
+        // 2. Invalida la sessione immediatamente.
         // Al prossimo rientro (onStart), isSessionValid sarà false e verrà chiesto il PIN.
         isSessionValid = false;
     }
@@ -169,7 +167,7 @@ public class SessionObserver implements DefaultLifecycleObserver {
     // Nota: onDestroy, onResume, onPause non sono strettamente necessari per questa logica,
     // DefaultLifecycleObserver li gestisce di default come vuoti.
 
-    /* ───────────────────────── Navigazione ───────────────────────── */
+    /*Navigazione*/
 
     private static void navigateToAuth() {
         if (navController != null) {

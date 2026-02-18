@@ -37,8 +37,8 @@ public class notesListFragment extends Fragment implements NoteAdapter.OnNoteCli
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true); //setHasOptionsMenu(true); in un Fragment dice al sistema: “questo fragment vuole contribuire al menu dell’Activity (o dell’AppBar)”
         // Imposta la transizione per l'uscita (navigazione verso editor)
-        setExitTransition(new MaterialSharedAxis(MaterialSharedAxis.X, /* forward= */ true));
-        setReenterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, /* forward= */ false));
+        setExitTransition(new MaterialSharedAxis(MaterialSharedAxis.X, true));
+        setReenterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, false));
     }
 
     @Override
@@ -102,7 +102,7 @@ public class notesListFragment extends Fragment implements NoteAdapter.OnNoteCli
                         .setNegativeButton("Annulla", (dialog, which) -> {
                             // Annulla: ripristina l'elemento swippato
                             /*Dopo onSwiped(...) la cella è traslata/attenuata (in stato “dismiss”).
-                             Se decidi di non eliminarla (utente preme Annulla), devi ripristinare la view.
+                             Se non viene eliminata (utente preme Annulla), bisogna ripristinare la view.
                             adapter.notifyItemChanged(pos) dice alla RecyclerView:
                              “l’item alla posizione pos è cambiato” → rialloca e richiama onBindViewHolder per quell’item,
                               azzerando la traduzione/alpha (lo “sbiadimento”) applicato dallo swipe. Risultato: la riga torna visibile al suo posto,

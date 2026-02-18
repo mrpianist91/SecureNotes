@@ -6,7 +6,7 @@
 
     <uses-permission android:name="android.permission.VIBRATE"/>
 
-    <!--meglio evitare i backup sul cloud google per sicurezza...allowBackup=false-->
+    <!--Requisito: vietato salvare i backup sul cloud google. Usiamo allowBackup=false-->
     <application
         android:name=".SecureNotesApplication"
         android:allowBackup="false"

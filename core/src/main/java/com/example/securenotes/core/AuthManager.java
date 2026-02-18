@@ -55,7 +55,7 @@ public class AuthManager {
         return instance;
     }
 
-    // --- PIN & LOCKOUT ---
+    // PIN & LOCKOUT
 
     public AuthResult verifyPin(String inputPin) {
         try {
@@ -121,7 +121,7 @@ public class AuthManager {
         return getLockRemainingMillis() > 0;
     }
 
-    // --- BIOMETRIA ---
+    //BIOMETRIA
 
     public boolean isBiometricEnabled() {
         return prefsManager.isBiometricEnabled();

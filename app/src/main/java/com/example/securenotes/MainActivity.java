@@ -83,9 +83,8 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
     }
 
 
-    // --------------------------------------------------------------------- //
+
     // Life-cycle
-    // --------------------------------------------------------------------- //
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d("A", "Main.onCreate START " + this + " t=" + SystemClock.uptimeMillis());
@@ -95,15 +94,15 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
         // 1. SICUREZZA GLOBALE: Impedisce screenshot e anteprima nelle app recenti
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
 
-        // ----- ViewBinding -------------------------------------------------
+        //ViewBinding
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Collega la Toolbar come Action Bar (host dei menu dei Fragment)
+        // Collega (setta) la Toolbar come Action Bar (host dei menu dei Fragment)
         MaterialToolbar toolbar = binding.toolbar;
         setSupportActionBar(toolbar);
 
-        // ----- Navigation Setup--------------------------------------------------
+        //Navigation Setup
         NavHostFragment navHost =
                 (NavHostFragment) getSupportFragmentManager()
                         .findFragmentById(R.id.fragmentContainerView);
@@ -133,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
         // Funziona perché gli ID nel menu_bottom_nav.xml coincidono con gli ID nel nav_graph.xml.
         NavigationUI.setupWithNavController(binding.bottomNav, navController);
 
-        // 6. GATEKEEPER VISIVO (Gestione Visibilità BottomBar)
+        // 6.(Gestione Visibilità BottomBar)
         // La barra deve apparire SOLO nelle destinazioni principali (Top Level).
         // Deve sparire in: Splash, Login, Onboarding, Modifica Nota, etc.
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
@@ -151,10 +150,10 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
             }
         });
 
-        // ----- Collega qui il SessionObserver (ora il NavHost esiste) -----
+        // Collega qui il SessionObserver (ora il NavHost esiste)
         setupSessionObserver(navController);
 
-        // ----- Backup di test (solo build DEBUG) --------------------------
+        //Backup di test (solo build DEBUG) DA ELIMINARE
         if (BuildConfig.DEBUG) {
             scheduleDebugBackup();
         }
@@ -202,10 +201,8 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
         binding = null;
     }
 
-    // --------------------------------------------------------------------- //
     // Helper
-    // --------------------------------------------------------------------- //
-    /** Avvia un BackupWorker «expedited» solo per test in build DEBUG. */
+    // Avvia un BackupWorker «expedited» solo per test in build DEBUG
     private void scheduleDebugBackup() {
         WorkRequest req = new OneTimeWorkRequest.Builder(BackupWorker.class)
                 .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)

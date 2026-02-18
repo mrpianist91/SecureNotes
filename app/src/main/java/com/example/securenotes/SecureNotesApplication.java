@@ -18,8 +18,7 @@ import com.example.securenotes.core.PreferenceManager;
 
 /**
  * Application class che gestisce:
- *  • Dynamic Color (Material You)
- *  • Registrazione globale di SessionObserver
+ *  • Dynamic Color
  */
 public class SecureNotesApplication extends Application {
 
@@ -28,7 +27,7 @@ public class SecureNotesApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        // Da Android 12 in poi adattiamo automaticamente il tema al sfondo del dispositivo (Material You).
+        // Da Android 12 in poi adattiamo automaticamente il tema al sfondo del dispositivo (Dynamic Color "Material You").
         // Attiviamo quindi i Dynamic Colors se disponibili. Ciò farà sì che il tema usi la palette dinamica derivata dallo sfondo del
         //dispositivo, garantendo un’esperienza personalizzata e rispettando le linee guida moderne
         DynamicColors.applyToActivitiesIfAvailable(this);

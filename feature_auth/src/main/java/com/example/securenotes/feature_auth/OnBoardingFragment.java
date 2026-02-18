@@ -25,18 +25,17 @@ import com.example.securenotes.feature_auth.databinding.FragmentOnboardingBindin
  */
 public class OnBoardingFragment extends Fragment {
 
-    /* ==== ViewBinding ==== */
+    //ViewBinding
     private FragmentOnboardingBinding binding;
 
-    /* ==== MVVM ==== */
+    //MVVM
     private AuthViewModel authViewModel;
 
-    /* ==== Adapter per il ViewPager2 ==== */
+    //Adapter per il ViewPager2
     private OnboardingPagerAdapter pagerAdapter;
 
-    /* --------------------------------------------------------------------- */
-    /*  Ciclo di vita                                                         */
-    /* --------------------------------------------------------------------- */
+
+    //  Ciclo di vita
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -53,20 +52,20 @@ public class OnBoardingFragment extends Fragment {
 
         super.onViewCreated(root, savedInstanceState);
 
-        /* -- ViewModel condiviso con l’Activity (Auth flow) -- */
+        /*ViewModel condiviso con l’Activity (Auth flow) */
         authViewModel = new ViewModelProvider(requireActivity())
                 .get(AuthViewModel.class);
 
-        /* -- Inizializza il ViewPager2 e l’adapter -- */
+        /*Inizializza il ViewPager2 e l’adapter*/
         pagerAdapter = new OnboardingPagerAdapter(this);
         binding.viewPagerOnboarding.setAdapter(pagerAdapter);
 
-        /* -- Setup pulsanti Skip / Next -- */
+        /*Setup pulsanti Skip / Next*/
         NavController navController = NavHostFragment.findNavController(this);
-// se l'utente fa "Skip", si va alla creazione del pin
+    // se l'utente fa "Skip", si va alla creazione del pin
         binding.btnSkip.setOnClickListener(v ->
                 navController.navigate(R.id.action_onBoardingFragment_to_createPinFragment));
-//se l'utente preme "Next", si passa alla slide successiva, o, se è l'ultima slide, si va alla creazione del pin
+    //se l'utente preme "Next", si passa alla slide successiva, o, se è l'ultima slide, si va alla creazione del pin
         binding.btnNext.setOnClickListener(v -> {
             int cur = binding.viewPagerOnboarding.getCurrentItem();
             if (cur < pagerAdapter.getItemCount() - 1) {
@@ -76,9 +75,9 @@ public class OnBoardingFragment extends Fragment {
             }
         });
 
-        /* -- Cambia testo “Avanti” → “Inizia” all’ultima slide -- */
-        //--se la pagina/slide visualizzata è l'ultima allora cambia il testo di btnNext "Avanti" con "Inizia", e fa sparire il btnSkip
-        //--il controllo viene fatto tramite indice/position della slide mostrata
+        //Cambia testo “Avanti” → “Inizia” all’ultima slide
+        //se la pagina/slide visualizzata è l'ultima allora cambia il testo di btnNext "Avanti" con "Inizia", e fa sparire il btnSkip
+        //il controllo viene fatto tramite indice/position della slide mostrata
         binding.viewPagerOnboarding.registerOnPageChangeCallback(
                 new ViewPager2.OnPageChangeCallback() {
                     @Override
@@ -94,7 +93,7 @@ public class OnBoardingFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        binding = null;              // evita memory-leak
+        binding = null; //per evitare i memory-leaks
     }
 
 
@@ -111,7 +110,7 @@ public class OnBoardingFragment extends Fragment {
                 "Proteggi l'accesso con PIN e impronta digitale.",
                 "Le tue note, solo dove vuoi tu. Backup cifrati automatici."
         };
-        // (Nota: in un caso reale potremmo anche avere riferimenti a immagini da mostrare per ogni slide)
+        // (Nota: potremmo anche avere riferimenti a immagini da mostrare per ogni slide)
 
         public OnboardingPagerAdapter(@NonNull Fragment fragment) {
             super(fragment);

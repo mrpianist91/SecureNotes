@@ -11,14 +11,13 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 /**
- * Wrapper centralizzato intorno a {@link EncryptedSharedPreferences}.
- * <p>
- * – Tutti i valori sono cifrati AES-256/GCM.<br>
+ * Wrapper centralizzato intorno a EncryptedSharedPreferences.
+ * – Tutti i valori sono cifrati AES-256/GCM.
  * – Nessun dato sensibile (PIN, chiavi, token) rimane in chiaro su FS.
  */
 public class PreferenceManager {
 
-    /* ********** costanti ********** */
+    /*costanti*/
     private static final String PREF_FILE_NAME        = "secure_notes_prefs";
 
     private static final String KEY_PIN_HASH          = "pin_hash";
@@ -33,7 +32,7 @@ public class PreferenceManager {
     private static final String KEY_SESSION_TIMEOUT   = "session_timeout_ms";   // nuovo
     private static final long   FALLBACK_TIMEOUT_MS   = 3 * 60 * 1000L;         // 3′
 
-    /* ********** stato ********** */
+    /*stato*/
     private final SharedPreferences prefs;
 
     public PreferenceManager(Context context) {
@@ -54,17 +53,16 @@ public class PreferenceManager {
         }
     }
 
-    /* --------------------------------------------------------------------- */
-    /* ====================  SEZIONE PIN e BIOMETRIA  ====================== */
-    /* --------------------------------------------------------------------- */
+    /* SEZIONE PIN e BIOMETRIA */
 
-    public void savePin(byte[] hash, byte[] salt) {
+
+    /*public void savePin(byte[] hash, byte[] salt) {
         prefs.edit()
                 .putString(KEY_PIN_HASH, Base64.encodeToString(hash, Base64.NO_WRAP))
                 .putString(KEY_PIN_SALT, Base64.encodeToString(salt, Base64.NO_WRAP))
                 .putBoolean(KEY_IS_PIN_SET, true)
                 .apply();
-    }
+    }*/
 
     public byte[] getPinHash() {
         String b64 = prefs.getString(KEY_PIN_HASH, null);
@@ -88,9 +86,8 @@ public class PreferenceManager {
         return prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false);
     }
 
-    /* --------------------------------------------------------------------- */
-    /* ====================  SEZIONE LOCK-OUT  ============================= */
-    /* --------------------------------------------------------------------- */
+    /*SEZIONE LOCK-OUT*/
+
 
     public int getLoginAttempts() {
         return prefs.getInt(KEY_LOGIN_ATTEMPTS, 0);
@@ -112,9 +109,7 @@ public class PreferenceManager {
         prefs.edit().putLong(KEY_LOCKOUT_TIMESTAMP, timestamp).apply();
     }
 
-    /* --------------------------------------------------------------------- */
-    /* ====================  SEZIONE TIMEOUT DI SESSIONE  =================== */
-    /* --------------------------------------------------------------------- */
+    /*SEZIONE TIMEOUT DI SESSIONE */
 
     /**
      * Ritorna il timeout di sessione scelto dall’utente.

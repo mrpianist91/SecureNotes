@@ -41,14 +41,14 @@ public class SettingsFragment extends Fragment {
 
     // VIEW BINDING: Sostituisce tutti i findViewById
     private FragmentSettingsBinding binding;
-    private AuthViewModel authViewModel; // NEW: Per condividere stato col modulo Auth
+    private AuthViewModel authViewModel; //Per condividere stato col modulo Auth
     //Launcher per il SAF (File picker per "Creazione File Backup")
     private ActivityResultLauncher<Intent> exportLauncher;
 
     // Listener per segnalare l'azione esterna
     private SystemInteractionListener interactionListener;
 
-    // --- GESTIONE LISTENER (DEPENDENCY INVERSION) per evitare che al ritorno dal file picker, l'app venga interrotta ---
+    //GESTIONE LISTENER (DEPENDENCY INVERSION) per evitare che al ritorno dal file picker, l'app venga interrotta
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
@@ -56,7 +56,7 @@ public class SettingsFragment extends Fragment {
             interactionListener = (SystemInteractionListener) context;
         } else {
             // Nota: Non crashiamo qui se non è strettamente obbligatorio per tutto,
-            // ma per il backup è necessario.
+            // ma PER IL BACKUP E' NECESSARIO.
             // throw new RuntimeException(context.toString() + " deve implementare SystemInteractionListener");
         }
     }
@@ -105,11 +105,11 @@ public class SettingsFragment extends Fragment {
         );
 
 
-        // --- INIZIALIZZAZIONE UI ---
+        // INIZIALIZZAZIONE UI
         updateTimeoutText(viewModel.getCurrentTimeout());//inserisce il testo del timeout impostato in @+id/tv_timeout_value
         binding.switchBiometric.setChecked(viewModel.isBiometricEnabled());
 
-        // --- LISTENERS (Click) ---
+        //LISTENERS (ClickListenr)
         //Al click del bottone del “Cambio Pin” e del “Backup”, non facciamo nulla se non chiamare il VM
         //Usiamo "binding.idDelComponente"
 
@@ -129,7 +129,7 @@ public class SettingsFragment extends Fragment {
         binding.btnRestore.setOnClickListener(v ->
                 showMessage("Funzionalità Restore in arrivo"));
 
-        // --- OBSERVERS (Reazione) ---
+        //OBSERVERS (Reazioni)
 
         // 1. Gestione Loading (Blocco UI durante Re-Wrap) e blocca bottone Backup se Worker in corso
         viewModel.isLoading.observe(getViewLifecycleOwner(), isLoading -> {
@@ -269,7 +269,7 @@ public class SettingsFragment extends Fragment {
     }
 
 
-    // --- BIOMETRIA ---
+    //BIOMETRIA
     private void launchBiometricPrompt(SettingsViewModel.PendingAction action) {
         java.util.concurrent.Executor executor = ContextCompat.getMainExecutor(requireContext());
 
@@ -318,7 +318,7 @@ public class SettingsFragment extends Fragment {
         prompt.authenticate(info.build());
     }
 
-    // --- DIALOG ---
+    //DIALOG
 
     //Auth Fallback - Dialog per inserimento PIN di autenticazione (CASO "Esporta Backup")
     private void showPinAuthDialog() {
@@ -406,7 +406,7 @@ public class SettingsFragment extends Fragment {
         builder.show();
     }*/
     /**
-     * IMPLEMENTAZIONE RICHIESTA DEL TIMEOUT DIALOG
+     * IMPLEMENTAZIONE DEL TIMEOUT DIALOG
      */
     private void showTimeoutDialog() {
         // 1. Le opzioni visibili all'utente

@@ -5,7 +5,7 @@
     android:id="@+id/auth_nav"
     app:startDestination="@id/SplashFragment">
 
-    <!-- ───────── 1. Splash – decide se mostrare onboarding o login ───────── -->
+    <!--1. Splash – decide se mostrare onboarding o login-->
     <fragment
         android:id="@+id/SplashFragment"
         android:name="com.example.securenotes.feature_auth.SplashFragment"
@@ -27,7 +27,7 @@
             app:popUpToInclusive="true" />
     </fragment>
 
-    <!-- ───────── 2. On-Boarding (slider introduttivo) ───────── -->
+    <!--2. On-Boarding (slider introduttivo)-->
     <fragment
         android:id="@+id/onBoardingFragment"
         android:name="com.example.securenotes.feature_auth.OnBoardingFragment"
@@ -40,7 +40,7 @@
             app:destination="@id/createPinFragment" />
     </fragment>
 
-    <!-- ───────── 3. Creazione / modifica PIN ───────── -->
+    <!--3. Creazione / modifica PIN-->
     <fragment
         android:id="@+id/createPinFragment"
         android:name="com.example.securenotes.feature_auth.CreatePinFragment"
@@ -66,7 +66,7 @@
             app:popUpToInclusive="true" />
     </fragment>
 
-    <!-- ───────── 4. Login (PIN / biometria) ───────── -->
+    <!--4. Login (PIN / biometria)-->
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.example.securenotes.feature_auth.LoginFragment"

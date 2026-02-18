@@ -48,7 +48,9 @@ public class LoginFragment extends Fragment {
 
     // Callback verso l'Activity per notificare il successo del login al SessionObserver.
     private AuthListener authListener;
-    /*onAttach(Context context) è il primo metodo del ciclo di vita del Fragment a essere invocato. Il Fragment viene associato al suo Host (l'Activity). Il parametro context passato dal sistema è l'Activity ospitante. onAttach() rappresenta l'inizializzazione delle dipendenze esterne (il genitore), mentre onCreate dovrebbe occuparsi dell'inizializzazione dello stato interno del Fragment (variabili, ViewModel, ecc.).*/
+    //onAttach(Context context) è il primo metodo del ciclo di vita del Fragment a essere invocato.
+    // Il Fragment viene associato al suo Host (l'Activity). Il parametro context passato dal sistema è l'Activity ospitante.
+    //onAttach() rappresenta l'inizializzazione delle dipendenze esterne (il genitore), mentre onCreate dovrebbe occuparsi dell'inizializzazione dello stato interno del Fragment (variabili, ViewModel, ecc.).
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
@@ -191,9 +193,9 @@ public class LoginFragment extends Fragment {
 
 
     /**
-     +     * Mostra il BiometricPrompt per lo sblocco della BUSTA DB BIOMETRICA. Su successo emette l'evento di nav via VM.
-     +     * Se l'utente annulla o c'è un errore → fallback immediato al PIN.
-     +     */
+     * Mostra il BiometricPrompt per lo sblocco della BUSTA DB BIOMETRICA. Su successo emette l'evento di nav via VM.
+     * Se l'utente annulla o c'è un errore → fallback immediato al PIN.
+     */
     private void showBiometricPromptForDbUnlock() {
         try {
             // Carica (IV, CT) della busta biometrica salvata
@@ -209,7 +211,7 @@ public class LoginFragment extends Fragment {
             //BiometricHelper.ensureBiometricKey(requireContext());
             //final Cipher dec = BiometricHelper.getDecryptCipher(iv);
 
-            // NEW: Otteniamo il Cipher da AuthManager
+            // Otteniamo il Cipher da AuthManager
             // Questo metodo lancia KeyPermanentlyInvalidatedException se sono state aggiunte impronte!
             final Cipher dec = AuthManager.getInstance(requireContext()).getBiometricDecryptCipher(iv);
 
@@ -261,9 +263,8 @@ public class LoginFragment extends Fragment {
             }
             ).authenticate(info, new BiometricPrompt.CryptoObject(dec));
         } catch (android.security.keystore.KeyPermanentlyInvalidatedException e) {
-            // =================================================================
-            // NEW: GESTIONE SICUREZZA "EVIL MAID"
-            // =================================================================
+
+            //GESTIONE SICUREZZA "EVIL MAID" (attacco della "ragazza gelosa")
             Log.e("LoginFragment", "Chiave invalidata: nuove impronte rilevate.", e);
 
             // 1. Disabilita la biometria nell'app (la chiave crittografica è persa per sempre)

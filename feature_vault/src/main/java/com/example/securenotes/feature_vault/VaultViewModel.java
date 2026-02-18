@@ -76,7 +76,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
     public void importFile(Uri uri) {
         // 1. "stiamo caricando un file" -> mostra la ProgressBar
         _isLoading.setValue(true);
-        // FIX: Usa la callback per resettare isLoading SOLO quando il lavoro è finito
+        //Usa la callback per resettare isLoading SOLO quando il lavoro è finito
         repository.addFileFromUri(getApplication(), uri, new VaultRepository.CompletionListener() {
             @Override
             public void onComplete() {

@@ -234,12 +234,13 @@ Poiché lo ZipOutputStream è dentro il CipherOutputStream, tutto ciò che rigua
         }
     }
 
-    //Questo metodo torna la ForegroundInfo che permette al Worker di sopravvivere in background e di attivare una notifica persistente.
+    //Questo metodo torna la ForegroundInfo che permette al Worker di sopravvivere in background
+    // e di attivare una Notifica persistente.
     @NonNull
     private ForegroundInfo createForegroundInfo() {
         String title = "Backup in corso";//titolo della notifica
 
-        // 1. Creiamo e registriamo il canale di notifica (Safe su API 26+)
+        // 1. Creiamo e registriamo il canale di notifica (ok per API 26+)
         createNotificationChannel();
 
 
@@ -248,7 +249,7 @@ Poiché lo ZipOutputStream è dentro il CipherOutputStream, tutto ciò che rigua
                 .setContentTitle(title)
                 .setTicker(title)
                 .setContentText("Cifratura ed esportazione dati...")
-                .setSmallIcon(R.drawable.ic_save_24)//NON DIMENTICARE DI CREARLA
+                .setSmallIcon(R.drawable.ic_save_24)//icona da mostrare nella notifica (requisito imprescindibile affinchè appaia la notifica)
                 .setOngoing(true)//rende la notifica non eliminabile con lo swipe
                 .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)//dice al sistema di mostrare subito la notifica (di norma si deve attendere qualche secondo).
                 .build();//valido da Android 12+.

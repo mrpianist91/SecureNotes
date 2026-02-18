@@ -96,7 +96,7 @@ public class VaultFragment extends Fragment {
         setupGatekeeper();
     }
 
-    // --- GATEKEEPER & AUTH UI LOGIC ---
+    //GATEKEEPER & AUTH UI LOGIC
 
     private void setupGatekeeper() {
         if (!viewModel.isUnlocked()) {//!isUnlocked
@@ -109,7 +109,7 @@ public class VaultFragment extends Fragment {
         }
     }
 
-    /** Configura i listener per la nuova UI unificata (simile a LoginFragment) */
+    //Configura i listener per la nuova UI unificata (simile a LoginFragment)
     private void setupAuthUiInteractions() {
         // 1. Observer risultato PIN (dal ViewModel che usa AuthManager)
         viewModel.pinResult.observe(getViewLifecycleOwner(), result -> {
@@ -209,9 +209,9 @@ public class VaultFragment extends Fragment {
         }
     }
 
-    // --- UI STATES (Coerenza Visiva) ---
+    //UI STATES (Coerenza Visiva)
 
-    /** Stato 1: Vault Bloccato, Biometria in corso o opzione "Usa PIN" visibile */
+    //Stato 1: Vault Bloccato, Biometria in corso o opzione "Usa PIN" visibile
     private void lockUiState() {
         binding.contentLayer.setVisibility(View.GONE);
         binding.authLayer.setVisibility(View.VISIBLE);
@@ -224,7 +224,7 @@ public class VaultFragment extends Fragment {
         binding.etPin.setError(null);
     }
 
-    /** Stato 2: Utente ha scelto "Usa PIN" o Bio non disponibile -> Mostra InputText e tastiera */
+    //Stato 2: Utente ha scelto "Usa PIN" o Bio non disponibile -> Mostra InputText e tastiera
     private void showPinInputState() {
         binding.contentLayer.setVisibility(View.GONE);
         binding.authLayer.setVisibility(View.VISIBLE);
@@ -239,7 +239,7 @@ public class VaultFragment extends Fragment {
         if (imm != null) imm.showSoftInput(binding.etPin, InputMethodManager.SHOW_IMPLICIT);
     }
 
-    /** Stato 3: Sbloccato -> Mostra File */
+    //Stato 3: Sbloccato -> Mostra File
     private void unlockUiState() {
         binding.authLayer.setVisibility(View.GONE);
         binding.contentLayer.setVisibility(View.VISIBLE);
@@ -253,7 +253,6 @@ public class VaultFragment extends Fragment {
         }
     }
 
-    // ------------------------
 
     private void setupAdapter() {
         // Impostiamo l'adapter per gestire l'interazione dell'utente coi file nel RecyclerView
@@ -261,7 +260,7 @@ public class VaultFragment extends Fragment {
         adapter = new VaultAdapter(file -> viewModel.requestOpenFile(file));
         binding.rvVaultFiles.setAdapter(adapter);
 
-        // Swipe to Delete
+        // Swipe per Delete
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
             @Override
             public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh, @NonNull RecyclerView.ViewHolder target) { return false; }

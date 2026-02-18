@@ -47,7 +47,7 @@ public final class SecurityUtils {
 
     private SecurityUtils() { /* no instances */ }
 
-    // ======= EncryptedSharedPreferences =======
+    //EncryptedSharedPreferences...sarebbe meglio farselo tornare dal PreferenceManager?
 
     public static SharedPreferences getEncryptedPrefs(@NonNull Context ctx) {
         try {
@@ -66,7 +66,7 @@ public final class SecurityUtils {
         }
     }
 
-    // ======= Utilità random / salt =======
+    //Utilità random / salt
 
     public static byte[] generateRandom(int nBytes) {//nBytes==32
         byte[] out = new byte[nBytes];
@@ -78,7 +78,7 @@ public final class SecurityUtils {
         return generateRandom(SALT_LENGTH_BYTES);
     }
 
-    // ======= KDF & Hashing =======
+    //KDF & Hashing
 
     /** Deriva/ottiene una chiave AES-256 (“Kdf”) da PIN+salt via PBKDF2(HMAC-SHA-256). */
     public static SecretKey deriveKey(char[] pin, byte[] salt) throws GeneralSecurityException {
@@ -99,7 +99,8 @@ public final class SecurityUtils {
         return deriveKey(pin, salt).getEncoded();
     }
 
-    //Usato/chiamato in verifyPin() per controllare se le chiavi AES risultanti dal Pin inserito  //dall’utente in fase di auth e da quello conservato nelle EncryptedSharedPreferences sono //uguali.
+    //Usato/chiamato in verifyPin() per controllare se le chiavi AES risultanti dal Pin inserito
+    // dall’utente in fase di auth e da quello conservato nelle EncryptedSharedPreferences sono uguali.
     public static byte[] hashPin(@NonNull char[] pin, @NonNull byte[] salt) throws GeneralSecurityException {
         // Usiamo la chiave AES derivata (raw bytes) come “hash” del PIN
         return kdfKeyFromPin(pin, salt);
@@ -115,10 +116,10 @@ public final class SecurityUtils {
         }
     }
 
-    // ======= AES-GCM software =======
+    //AES-GCM software
 
     public static android.util.Pair<byte[], byte[]> aesGcmEncrypt(@NonNull byte[] key, @NonNull byte[] plaintext) throws GeneralSecurityException {
-//Cipher è un oggetto “cifrario”
+    //Cipher è un oggetto “cifrario”
         Cipher c = Cipher.getInstance(SW_TRANSFORMATION);
         c.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"));
         byte[] ct = c.doFinal(plaintext);
@@ -131,7 +132,7 @@ public final class SecurityUtils {
         return c.doFinal(ct);
     }
 
-    // ======= MASTER KEY RE-WRAPPING (Nuovo) =======
+    //MASTER KEY RE-WRAPPING (Nuovo)
 
     /**
      * Esegue il Re-Wrapping: Decifra la MasterKey col vecchio PIN e la ricifra col nuovo.
@@ -166,8 +167,8 @@ public final class SecurityUtils {
             newPinChars = newPin.toCharArray();
 
             // 4. Generazione Segreti (Doppia chiamata per sicurezza memoria)
-            newPinHash = hashPin(newPinChars, newSalt); // <--- Allocazione Memoria A per auth
-            newKek = kdfKeyFromPin(newPinChars, newSalt); // <--- Allocazione Memoria B per cambio pin
+            newPinHash = hashPin(newPinChars, newSalt); //Allocazione Memoria A per auth
+            newKek = kdfKeyFromPin(newPinChars, newSalt); //Allocazione Memoria B per cambio pin
 
             // 5. Ricifra Master Key (Nuovo PIN)
             android.util.Pair<byte[], byte[]> newWrap = aesGcmEncrypt(newKek, masterKey);
@@ -176,16 +177,16 @@ public final class SecurityUtils {
             // Qui creiamo la Stringa Base64. newPinHash array non serve più dopo questa riga.
             prefs.edit()
                     .putString(KEY_PIN_SALT, Base64.encodeToString(newSalt, Base64.NO_WRAP))
-                    .putString(KEY_PIN_HASH, Base64.encodeToString(newPinHash, Base64.NO_WRAP)) // <--- Ultimo utilizzo
+                    .putString(KEY_PIN_HASH, Base64.encodeToString(newPinHash, Base64.NO_WRAP)) //Ultimo utilizzo
                     .putString(DB_WRAP_SALT_PIN, Base64.encodeToString(newSalt, Base64.NO_WRAP))
                     .putString(DB_WRAP_IV_PIN, Base64.encodeToString(newWrap.first, Base64.NO_WRAP))
                     .putString(DB_WRAP_CT_PIN, Base64.encodeToString(newWrap.second, Base64.NO_WRAP))
                     .commit();
 
         } finally {
-            // =============================================================
+
             // ZONA DI PULIZIA (Viene eseguita SEMPRE, anche se crasha tutto)
-            // =============================================================
+
             zeroize(oldPinChars);
             zeroize(newPinChars);
             zeroize(oldKek);
@@ -197,7 +198,7 @@ public final class SecurityUtils {
             // ma almeno abbiamo distrutto la copia "raw" in nostro possesso.
             zeroize(newPinHash);
         }
-    }    // ======= Wrapping Utils =======
+    }    //Wrapping Utils
     //Una nested class che funziona come una structure di C: inseriamo il Salt del Pin e la masterkey del DB (cifrata tramite chiave derivata dal PIN) + IV usato per cifrare/decifrare. Tali info servono per fare autenticazione e cambio pin.
     public static final class PinWrapData {
         public final byte[] salt;
@@ -268,7 +269,7 @@ public final class SecurityUtils {
         return getEncryptedPrefs(ctx).getString(DB_WRAP_CT_PIN, null) != null;
     }
 
-    // ======= Cleanup =======
+    //Cleanup
 
     public static void zeroize(@Nullable byte[] data) {
         if (data != null) Arrays.fill(data, (byte) 0);

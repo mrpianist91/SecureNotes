@@ -6,7 +6,7 @@ package com.example.securenotes.feature_vault;
  */
 public interface VaultInteractionListener {
     /**
-     * Da chiamare PRIMA di lanciare un Intent di sistema (es. SAF, Camera)
+     * Da chiamare PRIMA di lanciare un Intent di sistema (es. SAF "File Picker")
      * che porterebbe l'app in background temporaneamente.
      */
     void onVaultExternalAction();

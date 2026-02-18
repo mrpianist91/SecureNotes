@@ -36,4 +36,11 @@ dependencies {
     implementation(libs.sqlcipher.android)
     implementation(libs.androidx.sqlite)
     implementation(libs.androidx.security.crypto)
+
+    // Dipendenze per Test Strumentali (AndroidTest)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    // Truth rende le asserzioni più leggibili (es. assertThat(...).doesNotContain(...))
+    androidTestImplementation("com.google.truth:truth:1.1.3")
 }

@@ -29,18 +29,18 @@ public class SplashFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
-// Aggiungiamo un piccolo ritardo per non avere un flash immediato
+    // Aggiungiamo un piccolo ritardo per non avere un flash immediato
         new Handler(Looper.getMainLooper()).postDelayed(this::checkAuthStatus,500);
     }
 
     //metodo che mi serve per capire dove navigare (loginFragment o OnBoardingFragment)
     private void checkAuthStatus() {
         if (authViewModel.isPinSet()) {
-// L'utente ha già un PIN, vai al login
+    // L'utente ha già un PIN, vai al login
             NavHostFragment.findNavController(this)
                     .navigate(R.id.action_splash_to_loginFragment);
         } else {
-// Primo avvio, vai all'onboarding
+    // Primo avvio, vai all'onboarding
             NavHostFragment.findNavController(this)
                     .navigate(R.id.action_splash_to_onBoardingFragment);
         }

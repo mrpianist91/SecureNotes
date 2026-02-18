@@ -28,13 +28,13 @@ public class AuthViewModel extends AndroidViewModel {
 
     private final MutableLiveData<Event<Boolean>> pinCreated = new MutableLiveData<>();
 
-    // NEW: LiveData per l'esito del cambio PIN
+    //LiveData per l'esito del cambio PIN
     private final MutableLiveData<Event<Boolean>> pinChanged = new MutableLiveData<>();
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    // NUOVO: Delega la logica di autenticazione
+    //Delega la logica di autenticazione
     //private final PinManager pinManager;
     private final AuthManager authManager;
 
@@ -45,7 +45,7 @@ public class AuthViewModel extends AndroidViewModel {
     private static final String KEY_PIN_SALT = SecurityUtils.KEY_PIN_SALT;
     private static final String KEY_PIN_HASH = SecurityUtils.KEY_PIN_HASH;
 
-    // NEW: Variabile volatile per tenere il vecchio PIN in memoria durante la transizione
+    //Variabile volatile per tenere il vecchio PIN in memoria durante la transizione
     // tra SettingsFragment e CreatePinFragment. Verrà azzerata subito dopo l'uso.
     private String tempOldPinForChange = null;
 
@@ -71,7 +71,7 @@ public class AuthViewModel extends AndroidViewModel {
         return pinCreated;
     }
 
-    // NEW: Getter per osservare il cambio PIN
+    //Getter per osservare il cambio PIN
     public LiveData<Event<Boolean>> getPinChanged() { return pinChanged; }
     /** Indica se un PIN era già registrato (usato per determinare se si tratta di modifica) */
     /*public boolean wasPinExisting() {
@@ -239,7 +239,7 @@ public class AuthViewModel extends AndroidViewModel {
         });
     }
 
-    // --- LOGICA CAMBIO PIN (Utente Esistente) ---
+    //LOGICA CAMBIO PIN (Utente Esistente)
 
     /**
      * Da chiamare in SettingsFragment DOPO aver validato il vecchio PIN.
@@ -289,10 +289,10 @@ public class AuthViewModel extends AndroidViewModel {
         // Sotto la lunghezza minima mostriamo 0 (chiarissimo all'utente)
         if (len < minLen) return 0;
 
-        // Base dalla lunghezza: cresce fino a ~96 a 8 cifre, poi cappata
+        // Base dalla lunghezza: cresce fino a circa 96 a 8 cifre, poi cappata
         int score = Math.min(len * 12, 96);
 
-        // Pattern deboli: tutti uguali, sequenza ↑ o ↓, poche cifre distinte
+        // Pattern deboli: tutti uguali, sequenza ascendente o discendente, poche cifre distinte
         boolean allSame = true;
         boolean ascending = true;
         boolean descending = true;

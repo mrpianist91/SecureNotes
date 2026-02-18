@@ -95,7 +95,7 @@ public class VaultRepositoryImpl implements VaultRepository {
 
                 vaultDao.insertVaultFile(vf);//INSERT
 
-                // FIX: Notifica completamento su Main Thread
+                // Notifica completamento su Main Thread
                 if (listener != null) mainHandler.post(listener::onComplete);
 
             } catch (Exception e) {

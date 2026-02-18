@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">SecureNotes</string>
-    <!-- Empty state -->
     <string name="no_notes">Nessuna nota</string>
     <string name="title">Titolo</string>
     <string name="tag">Tag</string>

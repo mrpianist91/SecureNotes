@@ -51,7 +51,7 @@
             L12,12.5
             z" />
 
-    <!-- Punto centrale (perno): piccolo cerchio r≈1 -->
+    <!-- Punto centrale (perno): piccolo cerchio r=1 -->
     <path
         android:fillColor="#000000"
         android:pathData="

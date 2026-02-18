@@ -27,13 +27,14 @@ import java.util.concurrent.Executors;
 
 public class SettingsViewModel extends AndroidViewModel {
 //per ciascun oggetto osservato usiamo il MutableLiveData per poterlo gestire (osservare e modificare) internamente a questa classe (SettingsViewModel), mentre usiamo il LiveData per poterlo fare (solo) osservare dall’UI.
-    // --- Stati UI (Observable) ---
+    //Stati UI (Observable)
 // isLoading è un semaforo. =“true”: Stiamo facendo un'operazione pesante (es. ricifratura //del database). Il Fragment deve mostrare una rotellina e bloccare i click. =”false”: Tutto //fermo. L'utente può interagire.
 
     private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>(false);
     public LiveData<Boolean> isLoading = _isLoading;
 
-    // Eventi One-Shot (Snackbar, Toast, Navigation)… Usiamo il wrapper Event<> per evitare //che, se ruoti lo schermo, il messaggio appaia di nuovo. L'evento si "consuma" una volta sola.
+    // Eventi One-Shot (Snackbar, Toast, Navigation)… Usiamo il wrapper Event<> per evitare che,
+    // se ruoti lo schermo, il messaggio appaia di nuovo. L'evento si "consuma" una volta sola.
     //statusMessage serve per inviare messaggi temporanei come Toast o Snackbar ("Password errata", "Backup completato").
     private final MutableLiveData<Event<String>> _statusMessage = new MutableLiveData<>();
     public LiveData<Event<String>> statusMessage = _statusMessage;
@@ -51,7 +52,7 @@ public class SettingsViewModel extends AndroidViewModel {
     private final MutableLiveData<Event<AuthManager.AuthResult>> _authPinResult = new MutableLiveData<>();
     public LiveData<Event<AuthManager.AuthResult>> authPinResult = _authPinResult;
 
-    // --- Dipendenze ---
+    //Dipendenze
     private final AuthManager authManager;//gestisce la logica reale (Keystore, PIN, contatori)
     private final PreferenceManager prefsManager;// Gestisce l’EncryptedSharedPreference
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -70,7 +71,7 @@ public class SettingsViewModel extends AndroidViewModel {
         this.prefsManager = new PreferenceManager(context);
         this.workManager = WorkManager.getInstance(context);
 
-        // NEW: Inizializza l'Observer per il Backup
+        //Inizializza l'Observer per il Backup
         backupObserver = workInfos -> {
             if (workInfos == null || workInfos.isEmpty()) return;
 
@@ -100,7 +101,7 @@ public class SettingsViewModel extends AndroidViewModel {
         workManager.getWorkInfosForUniqueWorkLiveData("backup_unique").observeForever(backupObserver);
     }
 
-    // ================== LOGICA UTENTE ==================
+    //LOGICA UTENTE
 
     /**
      * Chiamato quando l'utente clicca su un'azione sensibile (Cambio PIN o Backup).
@@ -157,7 +158,7 @@ public class SettingsViewModel extends AndroidViewModel {
         });
     }
 
-    // ================== OPERAZIONI CRITICHE ==================
+    //OPERAZIONI CRITICHE
 
     /**
      * Esegue il Re-Wrapping della Master Key.
@@ -205,7 +206,7 @@ public class SettingsViewModel extends AndroidViewModel {
                 .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)// In caso lo smartphone fosse in modalità Doze (risparmio energetico) questo metodo dice al sistema che il lavoro/backup è urgente, e va eseguito quanto prima. Solo che l’urgenza si basa su un sistema di quote/crediti. Se l’app non ha crediti a sufficienza però la policy che passiamo dice di eseguirlo lo stesso come NON_EXPEDITED_WORK)
                 .build();
 
-/// NEW: Usiamo enqueueUniqueWork con REPLACE.
+//Usiamo enqueueUniqueWork con REPLACE.
         // Questo garantisce che ci sia UN SOLO lavoro attivo con questo nome.
         // Appena chiamato, lo stato diventa ENQUEUED e l'observer sopra blocca la UI.
         workManager.enqueueUniqueWork("backup_unique", ExistingWorkPolicy.REPLACE, backupRequest);
@@ -218,7 +219,7 @@ public class SettingsViewModel extends AndroidViewModel {
         //_statusMessage.setValue(new Event<>("Backup avviato in background..."));
     }
 
-    // ================== PREFERENZE ==================
+    //PREFERENZE
 
     public void setBiometricEnabled(boolean enabled) {
         authManager.setBiometricEnabled(enabled);

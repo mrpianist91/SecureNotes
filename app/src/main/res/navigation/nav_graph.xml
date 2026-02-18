@@ -8,6 +8,7 @@
     <!-- Include il grafo di navigazione del modulo di autenticazione -->
     <include app:graph="@navigation/auth_nav" />
 
+    <!--includiamo il CreatePinFragment direttamente nel, sotto nome fittizio "changePinFragment" per poterlo raggiungere direttamente dalle Impostazioni (Cambio Pin)-->
     <fragment
         android:id="@+id/changePinFragment"
         android:name="com.example.securenotes.feature_auth.CreatePinFragment"

@@ -71,33 +71,31 @@ public class NotesViewModel extends ViewModel {
         return selectedTag.getValue() != null ? selectedTag.getValue() : Note.TAG_ALL;
 
     }
-/** Aggiunge una nuova nota (persistenza su DB). */
+//Aggiunge una nuova nota (persistenza su DB).
     public void addNote(Note note) {
         repository.addNote(note);
     }
-/** Richiede aggiornamento di una nota esistente (persistenza). */
+//Richiede aggiornamento di una nota esistente (persistenza).
     public void updateNote(Note note) {
                 repository.updateNote(note);
     }
-/** Cancella la nota specificata (persistenza). */
+//Cancella la nota specificata (persistenza). */
     public void deleteNote(Note note) {
         repository.deleteNote(note);
     }
-/** Salva in ViewModel la nota attualmente selezionata per l'editor. */
+// Salva in ViewModel la nota attualmente selezionata per l'editor.
     public void setCurrentNote(Note note) {
                         this.currentNote = note;
     }
 
-    /** Restituisce la nota selezionata attualmente in memoria (se presente).
-     */
+    //Restituisce la nota selezionata attualmente in memoria (se presente).
     public Note getCurrentNote() {
         return currentNote;
     }
 
-    /**
-     * Ricerca nelle note (già caricate) una nota per ID.
-     * fa il return della Nota trovata con l'ID specificato, o null se non trovata.
-     */
+    //Ricerca nelle note (già caricate) una nota per ID.
+      //fa il return della Nota trovata con l'ID specificato, o null se non trovata.
+
     public Note findNoteById(String noteId) {
         List<Note> list = notes.getValue();
         if (list != null) {
