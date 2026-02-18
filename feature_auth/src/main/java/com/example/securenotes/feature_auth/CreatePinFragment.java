@@ -9,6 +9,7 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.util.Pair;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -51,6 +52,27 @@ public class CreatePinFragment extends Fragment {
     // Launcher per mandare l’utente alle Impostazioni a fare l’enrollment biometrico
     private ActivityResultLauncher<Intent> enrollLauncher;
 
+    // Flag per la modalità (onboarding vs cambio pin)
+    private boolean isChangeMode = false;
+
+    // Questo metodo serve per dire al sistema che vuoi gestire la Toolbar (per il tasto Back)
+    /*@Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }*/
+
+    // 2. Aggiungi questo metodo per intercettare il click sulla freccia
+    /*@Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        // android.R.id.home è l'ID di sistema della freccia "Indietro" nella Toolbar
+        if (item.getItemId() == android.R.id.home) {
+            // Chiamiamo il nostro metodo helper che fa il popBackStack() sicuro
+            navigateBack();
+            return true; // Indichiamo che abbiamo gestito l'evento
+        }
+        return super.onOptionsItemSelected(item);
+    }*/
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentCreatePinBinding.inflate(inflater, container, false);
@@ -71,6 +93,17 @@ public class CreatePinFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
 
+        // 1. Recupera l'argomento dal Navigation Component
+        if (getArguments() != null) {
+            isChangeMode = CreatePinFragmentArgs.fromBundle(getArguments()).getIsChangeMode();
+        }
+
+        // Adatta la UI in base alla modalità
+        if (isChangeMode) {
+            binding.tvCreatePin.setText("Imposta Nuovo PIN");
+            binding.btnCreatePin.setText("Cambia PIN");
+        }
+
         // Al rientro dalle Impostazioni: ricontrolla biometria e, se ok, completa il wrapping via prompt
         enrollLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -89,9 +122,19 @@ public class CreatePinFragment extends Fragment {
                     int canAuth = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
                     // Enrollment completato: puoi proseguire col provisioning sicuro della passphrase DB usando la biometria:
                     if (canAuth == BiometricManager.BIOMETRIC_SUCCESS) {
-                        provisionDatabaseSecretWithBiometrics();
+                        // Se siamo in onboarding, facciamo il provisioning completo
+                        if (!isChangeMode) {
+                            provisionDatabaseSecretWithBiometrics();
+                        } else {
+                            // Se siamo in cambio PIN, la chiave è già wrappata col PIN.
+                            // Possiamo provare a ri-wrapparla con la biometria, ma attenzione a NON rigenerarla.
+                            // Per semplicità e sicurezza, torniamo indietro.
+                            navigateBack();
+                        }
                     } else { //Enrollment non andato a buon fine
                         Toast.makeText(requireContext(), "Attivazione biometrica non completata", Toast.LENGTH_LONG).show();
+                        // Se fallisce l'enrollment durante il cambio pin, torniamo comunque indietro con successo parziale (PIN cambiato, bio no)
+                        if(isChangeMode) navigateBack(); //navigateToLoginClearingAuthGraph();
                     }
 
 
@@ -151,8 +194,17 @@ public class CreatePinFragment extends Fragment {
                 Toast.makeText(requireContext(), "I PIN inseriti non coincidono", Toast.LENGTH_SHORT).show();
                 return;
             }
+            // DIRAMAZIONE LOGICA
+            if (isChangeMode) {
+                // MODALITA' CAMBIO PIN
+                authViewModel.changePin(pin);
+            } else {
+                // MODALITA' CREAZIONE (Onboarding)
+                authViewModel.createPin(pin);
+            }
+
             // Salva il PIN in modo sicuro tramite ViewModel
-            authViewModel.createPin(pin);
+           // authViewModel.createPin(pin);
 
             /*// 2) Provisioning del segreto DB in base alla biometria
             BiometricHelper.BiometricCapability cap = BiometricHelper.ensureBiometricKey(requireContext());
@@ -165,8 +217,9 @@ public class CreatePinFragment extends Fragment {
                 provisionDatabaseSecretWithPinFallback(pin);
             }*/
 
+
             // 2) Controllo Biometria
-            BiometricManager bm = BiometricManager.from(requireContext());
+            /*BiometricManager bm = BiometricManager.from(requireContext());
             int canAuth = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
 
             if (canAuth == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
@@ -179,10 +232,78 @@ public class CreatePinFragment extends Fragment {
             } else {
                 // Hardware non disponibile o altri errori -> Fallback PIN
                 provisionDatabaseSecretWithPinFallback(pin);
-            }
+            }*/
 
         });
 
+        // OSSERVAZIONE RISULTATI
+
+        // 1. Creazione (Esistente)
+        authViewModel.getPinCreated().observe(getViewLifecycleOwner(), event -> {
+            Boolean success = event.getContentIfNotHandled();
+            if (success != null) {
+                if (success) {
+                    handlePostPinCreation(binding.etPin.getText().toString().trim());
+                }
+             else { // false
+                Toast.makeText(requireContext(), "Errore creazione PIN", Toast.LENGTH_SHORT).show();
+             }
+            }
+        });
+
+        // 2. Cambio (Settings)
+        authViewModel.getPinChanged().observe(getViewLifecycleOwner(), event -> {
+            // Stessa logica per il cambio PIN
+            Boolean success = event.getContentIfNotHandled();
+            if (success!=null) {
+                if (success) {
+                    Toast.makeText(requireContext(), "PIN modificato con successo", Toast.LENGTH_SHORT).show();
+                    // Il PIN è cambiato e il DB è stato re-wrappato.
+                    // Non serve rifare il provisioning biometrico completo se l'utente non lo desidera,
+                    // ma per sicurezza manteniamo la logica esistente: controlliamo se si può usare la bio.
+                   // handlePostPinCreation(binding.etPin.getText().toString().trim());
+                    navigateBack();
+                } else { // false
+                    Toast.makeText(requireContext(), "Errore durante il cambio PIN", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // --- FIX NAVIGAZIONE TOOLBAR (FRECCIA INDIETRO) ---
+        // Recuperiamo la Toolbar dell'Activity
+        com.google.android.material.appbar.MaterialToolbar toolbar =
+                requireActivity().findViewById(getResources().getIdentifier("toolbar", "id", requireContext().getPackageName()));
+
+        if (toolbar != null) {
+            // Sovrascriviamo il comportamento del click sulla freccia.
+            // Invece di "navigateUp" (che crasha), forziamo "navigateBack" (che fa il popBackStack sicuro).
+            toolbar.setNavigationOnClickListener(v -> {
+                navigateBack(); // Richiama il tuo metodo helper esistente
+            });
+        }
+
+    }
+
+    /**
+     * Gestisce cosa fare dopo che il PIN è stato salvato (sia Create che Change).
+     * Controlla la biometria e decide se fare provisioning o uscire.
+     */
+    private void handlePostPinCreation(String pin) {
+        // 2) Controllo Biometria
+        BiometricManager bm = BiometricManager.from(requireContext());
+        int canAuth = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
+
+        if (canAuth == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
+            // Biometria possibile ma non configurata -> Mandiamo l'utente alle impostazioni
+            // Usiamo l'Intent fornito da AuthManager
+            Intent enrollIntent = AuthManager.getInstance(requireContext()).getEnrollmentIntent();
+            enrollLauncher.launch(enrollIntent);
+        } else if (canAuth == BiometricManager.BIOMETRIC_SUCCESS) {
+            provisionDatabaseSecretWithBiometrics();
+        } else {
+            // Hardware non disponibile o altri errori -> Fallback PIN
+            provisionDatabaseSecretWithPinFallback(pin);
+        }
     }
     private static String codeName(int code) {
         switch (code) {
@@ -240,7 +361,7 @@ public class CreatePinFragment extends Fragment {
                                 // 4d) Salva IV + ciphertext a riposo (EncryptedSharedPreferences).
                                 SecurityUtils.saveWrappedDbWithBiometrics(requireContext(), iv, ct);
 
-                                // NEW: Notifichiamo all'AuthManager che la biometria è ufficialmente attiva
+                                // Notifichiamo all'AuthManager che la biometria è ufficialmente attiva
                                 AuthManager.getInstance(requireContext()).setBiometricEnabled(true);
 
                                 // 4e) Provisioning completato (solo PIN o PIN+BIO): vai oltre (es. torna al Login).
@@ -299,6 +420,11 @@ public class CreatePinFragment extends Fragment {
         } finally {
             Arrays.fill(passphrase, (byte)0);
         }
+    }
+
+    /** Helper per tornare indietro o al login */
+    private void navigateBack() {
+        NavHostFragment.findNavController(this).popBackStack();
     }
 
     /** Torna al Login e fa pop dell’intero grafo di autenticazione. */

@@ -13,6 +13,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.securenotes.core.AuthManager;
+import com.example.securenotes.core.Event;
 import com.example.securenotes.core.SecurityUtils;
 
 import java.util.Arrays;
@@ -24,7 +25,11 @@ public class AuthViewModel extends AndroidViewModel {
     public enum LoginResult { SUCCESS, INCORRECT_PIN, LOCKED}
 
     private final MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
-    private final MutableLiveData<Boolean> pinCreated = new MutableLiveData<>();
+
+    private final MutableLiveData<Event<Boolean>> pinCreated = new MutableLiveData<>();
+
+    // NEW: LiveData per l'esito del cambio PIN
+    private final MutableLiveData<Event<Boolean>> pinChanged = new MutableLiveData<>();
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -39,6 +44,10 @@ public class AuthViewModel extends AndroidViewModel {
 // Chiavi gestite da SecurityUtils/AuthManager)
     private static final String KEY_PIN_SALT = SecurityUtils.KEY_PIN_SALT;
     private static final String KEY_PIN_HASH = SecurityUtils.KEY_PIN_HASH;
+
+    // NEW: Variabile volatile per tenere il vecchio PIN in memoria durante la transizione
+    // tra SettingsFragment e CreatePinFragment. Verrà azzerata subito dopo l'uso.
+    private String tempOldPinForChange = null;
 
     /*private static final String KEY_FAILS = "pin_fail_count";
     private static final String KEY_LOCK_UNTIL = "pin_lock_until";
@@ -58,10 +67,12 @@ public class AuthViewModel extends AndroidViewModel {
 
 
     /** LiveData per osservare l'esito della creazione/modifica PIN */
-    public LiveData<Boolean> getPinCreated() {
+    public LiveData<Event<Boolean>> getPinCreated() {
         return pinCreated;
     }
 
+    // NEW: Getter per osservare il cambio PIN
+    public LiveData<Event<Boolean>> getPinChanged() { return pinChanged; }
     /** Indica se un PIN era già registrato (usato per determinare se si tratta di modifica) */
     /*public boolean wasPinExisting() {
         return wasPinExisting;
@@ -213,7 +224,7 @@ public class AuthViewModel extends AndroidViewModel {
                 Arrays.fill(hash, (byte) 0); // azzero il contenuto di hash...forse dovrei azzerare anche il newPin, ma come fare??? DA RIVEDERE
                 java.util.Arrays.fill(pinChars, '\0'); // azzero il contenuto di pinChars
                 //  prepara (se possibile) la chiave biometrica AES-GCM nel Keystore, senza UI
-                try {
+                try {// Tenta enrollment chiave biometrica (se possibile)
                     BiometricHelper.BiometricCapability cap =
                             BiometricHelper.ensureBiometricKey(getApplication());
                     // Non fare altro qui: se cap == NOT_ENROLLED, ci penserà il Fragment a forzare l’enrollment.
@@ -221,9 +232,46 @@ public class AuthViewModel extends AndroidViewModel {
                     android.util.Log.w("AuthViewModel", "ensureBiometricKey failed", e);
                 }
                 // (Facoltativo) Si potrebbe impostare una flag "onboarding completato" qui
-                mainHandler.post(() -> pinCreated.setValue(true));
+                mainHandler.post(() -> pinCreated.setValue(new Event<>(true)));
             } catch (Exception e) {
-                mainHandler.post(() -> pinCreated.setValue(false));
+                mainHandler.post(() -> pinCreated.setValue(new Event<>(false)));
+            }
+        });
+    }
+
+    // --- LOGICA CAMBIO PIN (Utente Esistente) ---
+
+    /**
+     * Da chiamare in SettingsFragment DOPO aver validato il vecchio PIN.
+     * Memorizza temporaneamente il vecchio PIN per usarlo nel Re-Wrap.
+     */
+    public void setTempOldPinForChange(String oldPin) {
+        this.tempOldPinForChange = oldPin;
+    }
+
+    /**
+     * Esegue il Re-Wrap della Master Key usando il vecchio PIN memorizzato e il nuovo PIN fornito.
+     */
+    public void changePin(@NonNull String newPin) {
+        if (tempOldPinForChange == null) {
+            pinChanged.setValue(new Event<>(false));
+            return;
+        }
+
+        executor.execute(() -> {
+            try {
+                // Esecuzione Re-Wrap (Decifra DB key con vecchio PIN, Cifra con nuovo PIN)
+                // Questa funzione in SecurityUtils aggiorna anche il Salt e l'Hash del PIN nelle Prefs
+                SecurityUtils.reWrapMasterKey(getApplication(), tempOldPinForChange, newPin);
+
+                // Successo
+                mainHandler.post(() -> pinChanged.setValue(new Event<>(true)));
+            } catch (Exception e) {
+                e.printStackTrace();
+                mainHandler.post(() -> pinChanged.setValue(new Event<>(false)));
+            } finally {
+                // PULIZIA CRITICA: Rimuoviamo il vecchio PIN dalla memoria
+                tempOldPinForChange = null;
             }
         });
     }

@@ -8,6 +8,16 @@
     <!-- Include il grafo di navigazione del modulo di autenticazione -->
     <include app:graph="@navigation/auth_nav" />
 
+    <fragment
+        android:id="@+id/changePinFragment"
+        android:name="com.example.securenotes.feature_auth.CreatePinFragment"
+        android:label="Cambia PIN"
+        tools:layout="@layout/fragment_create_pin">
+        <argument
+            android:name="isChangeMode"
+            app:argType="boolean"
+            android:defaultValue="true" />
+    </fragment>
     <!-- Schermata Lista Note (destinazione principale post-login) -->
     <fragment
         android:id="@+id/notesListFragment"
@@ -49,6 +59,17 @@
         android:id="@+id/settingsFragment"
         android:name="com.example.securenotes.SettingsFragment"
         android:label="Settings"
-        tools:layout="@layout/fragment_settings" />
+        tools:layout="@layout/fragment_settings" >
+        <action
+            android:id="@+id/action_settingsFragment_to_createPinFragment"
+            app:destination="@id/changePinFragment">
+
+            <argument
+                android:name="isChangeMode"
+                app:argType="boolean"
+                android:defaultValue="false" />
+
+        </action>
+    </fragment>
 
 </navigation>

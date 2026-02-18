@@ -163,7 +163,7 @@ public class SettingsViewModel extends AndroidViewModel {
      * Esegue il Re-Wrapping della Master Key.
      * È thread-safe e gestisce lo stato di loading.
      */
-    public void changePin(String oldPin, String newPin) {
+    /*public void changePin(String oldPin, String newPin) {
         if (newPin.length() < 6) {
             _statusMessage.setValue(new Event<>("Il PIN deve essere di almeno 6 cifre"));
             return;
@@ -191,7 +191,7 @@ public class SettingsViewModel extends AndroidViewModel {
                 _isLoading.postValue(false); // UI Unblock
             }
         });
-    }
+    }*/
 
     /**
      * Avvia il Backup tramite WorkManager.

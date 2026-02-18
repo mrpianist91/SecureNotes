@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.androidx.navigation.safeargs)
 }
 android {
     namespace = "com.example.securenotes.feature_auth" // Assicurarsi che il namespace sia univoco

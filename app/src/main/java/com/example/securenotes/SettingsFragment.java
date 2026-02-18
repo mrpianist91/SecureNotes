@@ -23,10 +23,13 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.work.Data;
 
 import com.example.securenotes.core.SystemInteractionListener;
 import com.example.securenotes.backup_worker.BackupWorker;
+// Importa AuthViewModel per passare il vecchio PIN
+import com.example.securenotes.feature_auth.AuthViewModel;
 import com.example.securenotes.core.AuthManager;
 import com.example.securenotes.core.Event;
 import com.example.securenotes.databinding.FragmentSettingsBinding; // Generato da Gradle
@@ -38,7 +41,7 @@ public class SettingsFragment extends Fragment {
 
     // VIEW BINDING: Sostituisce tutti i findViewById
     private FragmentSettingsBinding binding;
-
+    private AuthViewModel authViewModel; // NEW: Per condividere stato col modulo Auth
     //Launcher per il SAF (File picker per "Creazione File Backup")
     private ActivityResultLauncher<Intent> exportLauncher;
 
@@ -83,6 +86,9 @@ public class SettingsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
+
+        // Otteniamo AuthViewModel con scope Activity per condividere i dati col CreatePinFragment
+        authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
         //Setup del Launcher
         exportLauncher = registerForActivityResult(//primo argomento indica “cosa si vuole con l’Intent” (risposta, “avviare un’activity che torna un risultato”); il secondo argomento invece indica la gestione del risultato della richiesta
                 new ActivityResultContracts.StartActivityForResult(),
@@ -347,13 +353,45 @@ public class SettingsFragment extends Fragment {
         //"d" è la dialog stessa, "w" è l'ID del tasto premuto (potrebbe servire se avessimo più pulsanti)
         builder.setPositiveButton("Avanti", (d, w) -> {
             String oldPin = input.getText().toString();
-            if (!oldPin.isEmpty()) showNewPinDialog(oldPin);
+            if (!oldPin.isEmpty()) //showNewPinDialog(oldPin);
+            {
+                // Approccio pragmatico "Minimal Changes":
+                // Riutilizziamo la verifica sincrona (veloce per hash) o deleghiamo al AuthViewModel activity-scoped.
+                // Poiché il flusso cambia pagina, usiamo AuthManager direttamente qui per semplicità di flusso immediato.
+
+                AuthManager.AuthResult result = AuthManager.getInstance(requireContext()).verifyPin(oldPin);
+                if (result == AuthManager.AuthResult.SUCCESS) {
+                    // 1. Salva vecchio PIN nel ViewModel condiviso (Activity Scope)
+                    authViewModel.setTempOldPinForChange(oldPin);
+
+                    // 2. Naviga verso CreatePinFragment in modalità Change
+                    // Nota: Usa la classe generata SettingsFragmentDirections se usi SafeArgs,
+                    // altrimenti Bundle manuale. Qui uso Bundle manuale per coerenza Java base.
+                    Bundle args = new Bundle();
+                    args.putBoolean("isChangeMode", true);
+// 2. Naviga verso CreatePinFragment usando Safe Args
+                    // La classe 'SettingsFragmentDirections' viene generata automaticamente alla build
+                    /*SettingsFragmentDirections.ActionSettingsFragmentToCreatePinFragment action =
+                            SettingsFragmentDirections.actionSettingsFragmentToCreatePinFragment();
+
+                    action.setIsChangeMode(true);*/
+
+                    // Eseguiamo la navigazione passando l'oggetto 'action' invece dell'ID e del Bundle
+                    //NavHostFragment.findNavController(this).navigate(action);
+                    NavHostFragment.findNavController(this)
+                            .navigate(R.id.action_settingsFragment_to_createPinFragment, args);
+
+                } else {
+                    showMessage("PIN errato");
+                }
+
+            }
         });
         builder.setNegativeButton("Annulla", null);
         builder.show();
     }
 
-    private void showNewPinDialog(String oldPin) {
+    /*private void showNewPinDialog(String oldPin) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Nuovo PIN");
         builder.setMessage("Inserisci il NUOVO PIN (min 8 cifre):");
@@ -366,8 +404,7 @@ public class SettingsFragment extends Fragment {
                 viewModel.changePin(oldPin, input.getText().toString()));
         builder.setNegativeButton("Annulla", null);
         builder.show();
-    }
-
+    }*/
     /**
      * IMPLEMENTAZIONE RICHIESTA DEL TIMEOUT DIALOG
      */
