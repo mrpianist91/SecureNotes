@@ -127,8 +127,8 @@ public class NoteEditFragment extends Fragment {
 
         // Listener per pulsante Bold: applica <b> al testo selezionato
         binding.btnBold.setOnClickListener(v -> {
-            int start = binding.editBody.getSelectionStart();
-            int end = binding.editBody.getSelectionEnd();
+            int start = Math.min(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
+            int end   = Math.max(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
             if (start < end) {
                 Editable text = binding.editBody.getText();
                 text.setSpan(new StyleSpan(android.graphics.Typeface.BOLD),
@@ -138,8 +138,8 @@ public class NoteEditFragment extends Fragment {
 
         // Listener per pulsante Italic: applica <i> al testo selezionato
         binding.btnItalic.setOnClickListener(v -> {
-            int start = binding.editBody.getSelectionStart();
-            int end = binding.editBody.getSelectionEnd();
+            int start = Math.min(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
+            int end   = Math.max(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
             if (start < end) {
                 Editable text = binding.editBody.getText();
                 text.setSpan(new StyleSpan(android.graphics.Typeface.ITALIC),
@@ -149,8 +149,8 @@ public class NoteEditFragment extends Fragment {
 
         // Listener per pulsante Underline: applica <u> al testo selezionato
         binding.btnUnderline.setOnClickListener(v -> {
-            int start = binding.editBody.getSelectionStart();
-            int end = binding.editBody.getSelectionEnd();
+            int start = Math.min(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
+            int end   = Math.max(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
             if (start < end) {
                 Editable text = binding.editBody.getText();
                 text.setSpan(new UnderlineSpan(),
