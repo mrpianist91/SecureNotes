@@ -3,6 +3,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.Spannable;
 import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -130,8 +131,29 @@ public class NoteEditFragment extends Fragment {
             int end = binding.editBody.getSelectionEnd();
             if (start < end) {
                 Editable text = binding.editBody.getText();
-                // Applica uno span di stile grassetto al testo selezionato
                 text.setSpan(new StyleSpan(android.graphics.Typeface.BOLD),
+                        start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        });
+
+        // Listener per pulsante Italic: applica <i> al testo selezionato
+        binding.btnItalic.setOnClickListener(v -> {
+            int start = binding.editBody.getSelectionStart();
+            int end = binding.editBody.getSelectionEnd();
+            if (start < end) {
+                Editable text = binding.editBody.getText();
+                text.setSpan(new StyleSpan(android.graphics.Typeface.ITALIC),
+                        start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        });
+
+        // Listener per pulsante Underline: applica <u> al testo selezionato
+        binding.btnUnderline.setOnClickListener(v -> {
+            int start = binding.editBody.getSelectionStart();
+            int end = binding.editBody.getSelectionEnd();
+            if (start < end) {
+                Editable text = binding.editBody.getText();
+                text.setSpan(new UnderlineSpan(),
                         start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         });

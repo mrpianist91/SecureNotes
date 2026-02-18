@@ -60,14 +60,37 @@
                 style="@style/Widget.Material3.Button.TextButton.Icon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="B"
+                android:text="@string/btn_bold"
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-medium"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="4dp"
-                android:minWidth="48dp" />
-            <!-- Eventuali altri pulsanti (Italic, etc.) possono essere
-            aggiunti qui -->
+                android:minWidth="48dp"
+                android:focusable="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnItalic"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_italic"
+                android:textStyle="italic"
+                android:fontFamily="sans-serif-medium"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:minWidth="48dp"
+                android:focusable="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUnderline"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_underline"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp"
+                android:minWidth="48dp"
+                android:focusable="false" />
         </LinearLayout>
 
         <!-- Campo "Corpo" Nota -->
