@@ -163,10 +163,10 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
         long timeoutMs = new PreferenceManager(this)
                 .getSessionTimeoutMs(3 * 60 * 1000L); // default 3 minuti
 
-        // Registra l'observer che ascolta il ciclo di vita dell'INTERO processo (Background/Foreground). ProcessLifecycleOwner chiama onStart/onStop del SessionObserver
+        // Registra l'observer che ascolta il ciclo di vita dell'INTERO processo (Background/Foreground) dell'app. ProcessLifecycleOwner chiama onStart/onStop del SessionObserver (che implementa il DefaultLifecycleOwner)
         ProcessLifecycleOwner.get()
                 .getLifecycle()
-                .addObserver(new SessionObserver(navController, timeoutMs));
+                .addObserver(new SessionObserver(navController, timeoutMs));//il navController serve al SessionObserver per navigare verso il LoginFragment
     }
 
     private void refreshSession() {

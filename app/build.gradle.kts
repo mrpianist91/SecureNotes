@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.androidx.navigation.safeargs)
 }
 
 android {
@@ -43,8 +42,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Collega la configurazione di firma
-            signingConfig = signingConfigs.getByName("release")
+            // In CI usa il keystore di produzione; in locale fallback al debug signing
+            signingConfig = if (System.getenv("KEYSTORE_FILE") != null)
+                signingConfigs.getByName("release")
+            else
+                signingConfigs.getByName("debug")
         }
     }
 
@@ -88,8 +90,8 @@ dependencies {
     //implementation("androidx.security:security-crypto:1.0.0")
 
     //Test
-    /*
     testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)*/
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }

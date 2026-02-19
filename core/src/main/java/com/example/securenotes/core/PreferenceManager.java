@@ -56,13 +56,13 @@ public class PreferenceManager {
     /* SEZIONE PIN e BIOMETRIA */
 
 
-    /*public void savePin(byte[] hash, byte[] salt) {
+    public void savePin(byte[] hash, byte[] salt) {
         prefs.edit()
                 .putString(KEY_PIN_HASH, Base64.encodeToString(hash, Base64.NO_WRAP))
                 .putString(KEY_PIN_SALT, Base64.encodeToString(salt, Base64.NO_WRAP))
                 .putBoolean(KEY_IS_PIN_SET, true)
                 .apply();
-    }*/
+    }
 
     public byte[] getPinHash() {
         String b64 = prefs.getString(KEY_PIN_HASH, null);

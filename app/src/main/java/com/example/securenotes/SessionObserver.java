@@ -61,7 +61,8 @@ public class SessionObserver implements DefaultLifecycleObserver {
     // Indica se l'utente è attualmente autenticato e la sessione è valida
     private static boolean isSessionValid = false;
 
-    private static NavController navController;//fornito dal costruttore
+    //fornito dal costruttore, serve a navigare verso il LoginFragment
+    private static NavController navController;
 
     // Se true, ignora il prossimo onStop() senza invalidare la sessione.
     private static boolean ignoreNextPause = false;
