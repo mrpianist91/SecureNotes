@@ -82,9 +82,17 @@ public class LoginFragment extends Fragment {
         Log.d("LoginFragment", "VM id=" + System.identityHashCode(authViewModel));
         // Se esiste già un lock persistito (da tentativi precedenti), riflettilo subito in UI
         startLockCountdown(authViewModel.getLockRemainingMillis());
-        // Controllo di sicurezza: blocca l'accesso se il dispositivo è rootato
+        // Controllo di sicurezza: blocca l'accesso se il dispositivo è rootato.
+        // Usiamo solo i check ad alta affidabilità per evitare falsi positivi su dispositivi
+        // con developer options attive o con su binary non eseguibile (comune su API 26).
+        // - detectRootManagementApps: app di root presenti (SuperSU, Magisk Manager, ecc.)
+        // - checkForMagiskBinary: binary di Magisk rilevato
+        // - checkSuExists: su è effettivamente eseguibile (il check più definitivo)
         RootBeer rootBeer = new RootBeer(requireContext());
-        if (rootBeer.isRooted()) {
+        boolean isRooted = rootBeer.detectRootManagementApps()
+                || rootBeer.checkForMagiskBinary()
+                || rootBeer.checkSuExists();
+        if (isRooted) {
             new AlertDialog.Builder(requireContext())
                     .setTitle("Dispositivo non sicuro")
                     .setMessage("Il dispositivo risulta rootato. L'app verrà chiusa per motivi di sicurezza.")
