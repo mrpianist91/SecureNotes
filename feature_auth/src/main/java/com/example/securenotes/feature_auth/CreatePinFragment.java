@@ -146,8 +146,9 @@ public class CreatePinFragment extends Fragment {
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) { }
             @Override public void afterTextChanged(Editable s) {
                 String pin = s.toString();
-                int strength = authViewModel.calculatePinStrength(pin);//BISOGNA RIVEDERE L'ALGORITMO, SENZA SENSO
+                int strength = authViewModel.calculatePinStrength(pin);
                 binding.strengthBar.setProgress(strength);
+                binding.tvPinHint.setText(authViewModel.getPinHint(pin));
                 // Cambia colore/etichetta in base al valore di robustezza
                 if (strength < 34) {
                     binding.tvStrengthLabel.setText("Debole");

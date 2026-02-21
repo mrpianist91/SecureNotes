@@ -75,6 +75,18 @@
         app:layout_constraintStart_toStartOf="@id/strength_bar"
         android:paddingTop="16dp"/>
 
+    <TextView
+        android:id="@+id/tv_pin_hint"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorError"
+        android:text=""
+        app:layout_constraintTop_toBottomOf="@id/strength_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_create_pin"
         style="?attr/materialButtonStyle"
@@ -82,8 +94,8 @@
         android:layout_height="wrap_content"
         android:text="@string/action_create_pin"
         android:enabled="false"
-        app:layout_constraintTop_toBottomOf="@id/strength_bar"
+        app:layout_constraintTop_toBottomOf="@id/tv_pin_hint"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp"/>
+        android:layout_marginTop="24dp"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

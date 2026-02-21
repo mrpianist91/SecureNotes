@@ -356,6 +356,47 @@ public class AuthViewModel extends AndroidViewModel {
         return Math.max(0, Math.min(score, 100));
     }
 
+    /** Restituisce un suggerimento testuale sul motivo per cui il PIN è debole,
+     *  oppure stringa vuota se il PIN è accettabile (strength ≥ 60). */
+    public String getPinHint(@NonNull String pin) {
+        final int len = pin.length();
+        if (len < 2) return ""; // Con una sola cifra i flag allSame/ascending/descending sarebbero trivialmente true
+
+        boolean allSame = true, ascending = true, descending = true;
+        boolean[] seen = new boolean[10];
+        seen[charToDigit(pin.charAt(0))] = true;
+        for (int i = 1; i < len; i++) {
+            char c = pin.charAt(i);
+            seen[charToDigit(c)] = true;
+            if (c != pin.charAt(0))        allSame    = false;
+            if (c != pin.charAt(i - 1) + 1) ascending  = false;
+            if (c != pin.charAt(i - 1) - 1) descending = false;
+        }
+        int unique = 0;
+        for (boolean b : seen) if (b) unique++;
+
+        boolean repeatedBlock = false;
+        for (int p = 1; p <= len / 2; p++) {
+            String block = pin.substring(0, p);
+            int reps = 0;
+            for (int j = 0; j + p <= len; j += p) {
+                if (pin.startsWith(block, j)) reps++;
+                else break;
+            }
+            if (reps >= 2 && reps * p * 2 >= len) { repeatedBlock = true; break; }
+        }
+
+        if (allSame)      return "Evita cifre tutte uguali";
+        if (ascending)    return "Evita sequenze crescenti (es. 1234)";
+        if (descending)   return "Evita sequenze decrescenti (es. 4321)";
+        if (repeatedBlock) return "Evita blocchi ripetuti (es. 1212, 321321)";
+        if (unique <= 2)  return "Usa almeno 3 cifre diverse";
+        if (len >= 4 && (pin.startsWith("19") || pin.startsWith("20")))
+            return "Evita anni come prefisso (es. 1990)";
+        if (calculatePinStrength(pin) < 60) return "Allungalo o usa più cifre diverse";
+        return "";
+    }
+
     //Torniamo il valore numerico (int) dato il char in input
     private static int charToDigit(char c) {
         int d = c - '0';//In pratica è una sottrazione tra interi (anche se sono char!).
