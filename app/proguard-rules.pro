@@ -29,7 +29,7 @@
 
 # App-level classes: Activity, SessionObserver, SettingsFragment
 -keep class com.example.securenotes.MainActivity { *; }
--keep class com.example.securenotes.SessionObserver { *; }
+#-keep class com.example.securenotes.SessionObserver { *; }
 -keep class com.example.securenotes.SettingsFragment { *; }
 
 # SQLCipher: la libreria nativa (JNI) accede a campi Java per nome (es. mNativeHandle).

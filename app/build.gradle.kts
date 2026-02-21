@@ -35,8 +35,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            // Aggiungi shrinkResources come da specifiche
+            isMinifyEnabled = true //abilita shrinking + obfuscation + optimization tramite R8
+            // Aggiungi shrinkResources come da specifiche per rimuovere anche le "res" inutilizzate
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

@@ -109,7 +109,8 @@ public final class SecurityUtils {
     public static boolean verifyPin(@NonNull char[] candidatePin, @NonNull byte[] salt, @NonNull byte[] expectedHash) throws GeneralSecurityException {
         byte[] h = hashPin(candidatePin, salt);
         try {
-//confronto a tempo costante (dà un risultato sempre dopo il controllo di TUTTI i bit delle chiavi) per evitare che, in caso il confronto fallisse, un possibile attaccante capisca in quale punto di tali hash (chiavi AES!) il confronto non vada a buon fine
+//una funzione a "tempo costante" per evitare i TIMING ATTACKS: confronto a tempo costante (dà un risultato sempre dopo il controllo di TUTTI i bit delle chiavi) per evitare che,
+//in caso il confronto fallisse, un possibile attaccante capisca in quale punto di tali hash (chiavi AES!) il confronto non vada a buon fine
             return MessageDigest.isEqual(h, expectedHash);
         } finally {
             zeroize(h);
