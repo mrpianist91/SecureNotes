@@ -276,28 +276,41 @@ public class AuthViewModel extends AndroidViewModel {
         });
     }
 
-    /** Valuta la robustezza del PIN (0=debole, 100=forte) in base a lunghezza e pattern.
-     * legge la lunghezza minima da risorsa (@integer/min_pin_length),
-     * restituisce 0 se il PIN è più corto del minimo,
-     * calcola un punteggio base in funzione della lunghezza,
-     * taglia il punteggio per pattern deboli: tutti uguali, sequenza ascendente o discendente, ≤2 cifre distinte, prefisso da “anno”,
-     * dà un piccolo bonus se è lungo e non presenta pattern banali. */
+    /**Valuta la robustezza del PIN su una scala 0–100.
+     Restituisce 0 se il PIN è vuoto o più corto di min_pin_length.
+     Il punteggio base cresce con la lunghezza (10 pt per cifra, max 80).
+     Vengono rilevati e penalizzati (score ≤ 20) quattro pattern deboli:
+     cifre tutte uguali, sequenza strettamente ascendente, sequenza strettamente
+     discendente, blocco ripetuto (es. "12341234"). Se si usano ≤ 2 cifre distinte
+     il cap scende a 40. Un prefisso da "anno" (19xx / 20xx) porta il cap a 50.
+     Se il PIN è abbastanza lungo, privo di pattern banali e usa ≥ 4 cifre distinte,
+     viene aggiunto un bonus di 8 punti (max 100).
+     Il risultato finale è sempre nel range [0, 100] */
     public int calculatePinStrength(@NonNull String pin) {
-        if (pin.isEmpty()) return 0;
+        if (pin.isEmpty()) return 0;//stringa vuota -> 0 immediato
         final int len = pin.length();
         final int minLen = getApplication().getResources().getInteger(R.integer.min_pin_length);
         // Sotto la lunghezza minima mostriamo 0 (chiarissimo all'utente)
         if (len < minLen) return 0;
 
-        // Base dalla lunghezza: cresce fino a 80 a 8 cifre, poi cappata
+        // Base dalla lunghezza: cresce fino a 80 a 8 cifre (non di più).
+        //  - 4 cifre → 40
+        //  - 6 cifre → 60
+        //  - 8+ cifre → 80 (massimo base)
+        //  - Il cap a 80 riserva spazio per il bonus finale e impedisce che la sola lunghezza raggiunga 100.
         int score = Math.min(len * 10, 80);
 
         // Pattern deboli: tutti uguali, sequenza ascendente o discendente, poche cifre distinte
         boolean allSame = true;
         boolean ascending = true;
         boolean descending = true;
-        boolean[] seen = new boolean[10];
-        seen[charToDigit(pin.charAt(0))] = true;
+        boolean[] seen = new boolean[10];//array di 10 booleani per tracciare quali cifre compaiono ("seen")
+        seen[charToDigit(pin.charAt(0))] = true;//registra subito la prima cifra
+        /*Scorre il PIN dalla seconda cifra in poi:
+        - seen[d] = true → segna ogni cifra come "vista", impostando a "true" il corrispondente elemento dell'array.
+        - allSame: diventa false appena una cifra differisce dalla prima (1111 → rimane true).
+        - ascending: diventa false se una cifra non è esattamente +1 rispetto alla precedente (1234 → rimane true; 1235 → diventa false).
+        - descending: diventa false, per sequenze discendenti "4321...".*/
         for (int i = 1; i < len; i++) {
              char c = pin.charAt(i);
              int d = charToDigit(c);
@@ -306,18 +319,25 @@ public class AuthViewModel extends AndroidViewModel {
              if (c != pin.charAt(i - 1) + 1) ascending = false;
              if (c != pin.charAt(i - 1) - 1) descending = false;
         }
+        //Conta le cifre distinte usate nel PIN (es. "1122" → unique = 2), perchè le uniche cifre diverse che appaiono sono 1 e 2.
         int unique = 0;
         for (boolean b : seen) if (b) unique++;
 
-        // Blocco ripetuto: es. "12341234", "56785678"
+        // Blocco ripetuto dall'inizio: es. "12341234", "56785678", "321321XX".
+        // Conta quante volte il blocco di lunghezza p si ripete consecutivamente a partire
+        // dalla prima cifra; penalizza se copre almeno metà del PIN (reps*p*2 >= len).
         boolean repeatedBlock = false;
         for (int p = 1; p <= len / 2; p++) {
-            if (len % p != 0) continue;
             String block = pin.substring(0, p);
-            boolean rep = true;
-            for (int j = p; j < len; j += p)
-                if (!pin.startsWith(block, j)) { rep = false; break; }
-            if (rep) { repeatedBlock = true; break; }
+            int reps = 0;
+            for (int j = 0; j + p <= len; j += p) {
+                if (pin.startsWith(block, j)) reps++;
+                else break;
+            }
+            if (reps >= 2 && reps * p * 2 >= len) {
+                repeatedBlock = true;
+                break;
+            }
         }
 
         if (allSame || ascending || descending || repeatedBlock) {
@@ -336,9 +356,10 @@ public class AuthViewModel extends AndroidViewModel {
         return Math.max(0, Math.min(score, 100));
     }
 
+    //Torniamo il valore numerico (int) dato il char in input
     private static int charToDigit(char c) {
-        int d = c - '0';
-        return (d >= 0 && d <= 9) ? d : 0;
+        int d = c - '0';//In pratica è una sottrazione tra interi (anche se sono char!).
+        return (d >= 0 && d <= 9) ? d : 0;//in pratica non ritorna mai 0, perchè l'utente può inserire solo numeri
     }
 
     // Ritorna il timestamp (ms) fino al quale l'utente è bloccato; 0 se nessun lock.
