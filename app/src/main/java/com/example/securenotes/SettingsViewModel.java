@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
 public class SettingsViewModel extends AndroidViewModel {
 //per ciascun oggetto osservato usiamo il MutableLiveData per poterlo gestire (osservare e modificare) internamente a questa classe (SettingsViewModel), mentre usiamo il LiveData per poterlo fare (solo) osservare dall’UI.
     //Stati UI (Observable)
-// isLoading è un semaforo. =“true”: Stiamo facendo un'operazione pesante (es. ricifratura //del database). Il Fragment deve mostrare una rotellina e bloccare i click. =”false”: Tutto //fermo. L'utente può interagire.
+// isLoading è un semaforo. =“true”: Stiamo facendo un'operazione pesante (es. ricifratura del database). Il Fragment deve mostrare una rotellina e bloccare i click. =”false”: Tutto fermo. L'utente può interagire.
 
     private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>(false);
     public LiveData<Boolean> isLoading = _isLoading;
@@ -47,6 +47,10 @@ public class SettingsViewModel extends AndroidViewModel {
 
     private final MutableLiveData<Event<PendingAction>> _actionToExecute = new MutableLiveData<>();
     public LiveData<Event<PendingAction>> actionToExecute = _actionToExecute;
+
+    // Richiesta di autenticazione tramite PIN (quando la biometria è disabilitata e l'azione richiede auth)
+    private final MutableLiveData<Event<PendingAction>> _pinAuthRequired = new MutableLiveData<>();
+    public LiveData<Event<PendingAction>> pinAuthRequired = _pinAuthRequired;
 
     // Auth Fallback - Risultato verifica PIN manuale da comunicare/osservato dal Fragment
     private final MutableLiveData<Event<AuthManager.AuthResult>> _authPinResult = new MutableLiveData<>();
@@ -112,10 +116,13 @@ public class SettingsViewModel extends AndroidViewModel {
         if (Boolean.TRUE.equals(_isLoading.getValue())) return;
 
         if (authManager.isBiometricEnabled()) {
-            // Chiedi al Fragment di mostrare il prompt
+            // Chiedi al Fragment di mostrare il prompt biometrico
             _authRequest.setValue(new Event<>(action));
+        } else if (action == PendingAction.BACKUP) {
+            // Niente biometria, ma il backup richiede comunque autenticazione PIN
+            _pinAuthRequired.setValue(new Event<>(action));
         } else {
-            // Niente biometria, procedi direttamente (o chiedi PIN vecchio)
+            // CHANGE_PIN senza biometria: procedi (chiederà il vecchio PIN nel flusso successivo)
             proceedWithAction(action);
         }
     }
@@ -137,11 +144,9 @@ public class SettingsViewModel extends AndroidViewModel {
     // Smista l'azione effettiva
     private void proceedWithAction(PendingAction action) {
         _actionToExecute.setValue(new Event<>(action));
-
         // Questo metodo serve come "semaforo verde".
-        // In un MVVM puro, anche la visualizzazione del Dialog dovrebbe essere un Evento,
-        // ma per pragmatismo lasciamo che il Fragment gestisca i Dialog di input
-        // e chiami il ViewModel per l'esecuzione finale.
+        // Viene richiamata la callback nel SettingsFragment "viewModel.actionToExecute.observe..."
+        //che esegue l'azione (PendingAction action) vera e propria.
     }
 
     //Auth Fallback - Verifica il PIN tramite AuthManager in background (CASO "Esporta backup cifrato")

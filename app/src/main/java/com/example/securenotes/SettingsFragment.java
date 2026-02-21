@@ -161,6 +161,14 @@ public class SettingsFragment extends Fragment {
                 dispatchAction(action);
             }
         });
+        // 5. Richiesta autenticazione PIN diretta (biometria disabilitata, azione BACKUP)
+        viewModel.pinAuthRequired.observe(getViewLifecycleOwner(), event -> {
+            SettingsViewModel.PendingAction action = event.getContentIfNotHandled();
+            if (action != null) {
+                showPinAuthDialog();
+            }
+        });
+
         //Auth Fallback - Observer del risultato verifica PIN
         viewModel.authPinResult.observe(getViewLifecycleOwner(), event -> {
             AuthManager.AuthResult result = event.getContentIfNotHandled();
