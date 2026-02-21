@@ -71,6 +71,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/pin_strength_label"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
         app:layout_constraintBaseline_toTopOf="@id/strength_bar"
         app:layout_constraintStart_toStartOf="@id/strength_bar"
         android:paddingTop="16dp"/>
@@ -80,7 +81,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
         android:textColor="?attr/colorError"
         android:text=""
         app:layout_constraintTop_toBottomOf="@id/strength_bar"
