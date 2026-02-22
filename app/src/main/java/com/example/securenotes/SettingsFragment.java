@@ -154,7 +154,7 @@ public class SettingsFragment extends Fragment {
         });
 
         // 4. Esecuzione Azione (Step 2: Auth superata -> Esegui logica)
-        // Chi chiama dispatchAction? Lo chiama questo Observer quando il ViewModel dà l'OK.
+        // Questo observer chiama dispatchAction quando il ViewModel dà l'OK.
         viewModel.actionToExecute.observe(getViewLifecycleOwner(), event -> {
             SettingsViewModel.PendingAction action = event.getContentIfNotHandled();
             if (action != null) {
