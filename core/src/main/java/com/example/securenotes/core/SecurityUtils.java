@@ -194,7 +194,6 @@ public final class SecurityUtils {
             zeroize(newKek);
             zeroize(masterKey);
 
-            // ECCOLO: Puliamo l'array hash.
             // La Stringa Base64 nelle SharedPreferences purtroppo resta (limite Android),
             // ma almeno abbiamo distrutto la copia "raw" in nostro possesso.
             zeroize(newPinHash);
@@ -270,8 +269,7 @@ public final class SecurityUtils {
         return getEncryptedPrefs(ctx).getString(DB_WRAP_CT_PIN, null) != null;
     }
 
-    //Cleanup
-
+    //Azzeriamo informazioni sensibili
     public static void zeroize(@Nullable byte[] data) {
         if (data != null) Arrays.fill(data, (byte) 0);
     }

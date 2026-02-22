@@ -21,7 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AuthViewModel extends AndroidViewModel {
-    // Risultati possibili per il login PIN...manteniamo l'enum locale per compatibilità con i Fragment esistenti
+    // Risultati possibili per il login PIN
     public enum LoginResult { SUCCESS, INCORRECT_PIN, LOCKED}
 
     private final MutableLiveData<LoginResult> loginResult = new MutableLiveData<>();
@@ -49,9 +49,6 @@ public class AuthViewModel extends AndroidViewModel {
     // tra SettingsFragment e CreatePinFragment. Verrà azzerata subito dopo l'uso.
     private String tempOldPinForChange = null;
 
-    /*private static final String KEY_FAILS = "pin_fail_count";
-    private static final String KEY_LOCK_UNTIL = "pin_lock_until";
-    private static final String KEY_BACKOFF_STEP = "pin_backoff_step";*/
 
     public AuthViewModel(@NonNull Application application) {
         super(application);
@@ -73,16 +70,13 @@ public class AuthViewModel extends AndroidViewModel {
 
     //Getter per osservare il cambio PIN
     public LiveData<Event<Boolean>> getPinChanged() { return pinChanged; }
-    /** Indica se un PIN era già registrato (usato per determinare se si tratta di modifica) */
-    /*public boolean wasPinExisting() {
-        return wasPinExisting;
-    }*/
+
 
     /** Verifica se esiste già un PIN configurato */
     public boolean isPinSet() {
         try {
             SharedPreferences prefs = SecurityUtils.getEncryptedPrefs(getApplication());
-            return prefs.getString(KEY_PIN_HASH, null) != null/*|| prefs.getString("user_pin", null) != null*/; // fallback legacy
+            return prefs.getString(KEY_PIN_HASH, null) != null;
         } catch (Exception e) {
             // In caso di errore di lettura, per sicurezza consideriamo non impostato
             return false;
@@ -93,95 +87,7 @@ public class AuthViewModel extends AndroidViewModel {
     public void verifyPin(@NonNull String inputPin) {
         Log.d("AuthVM", "VM id=" + System.identityHashCode(this));
         executor.execute(() -> {
-            /*try {
-                Log.d("AuthVM", "VM id=" + System.identityHashCode(this));
-                SharedPreferences prefs = SecurityUtils.getEncryptedPrefs(getApplication());
-                long now = System.currentTimeMillis();
-                //KEY_LOCK_UNTIL conserva (nelle EncryptedSharedPreferences) un timestamp in millis (epoch) fino al quale il login è bloccato dopo troppi tentativi con PIN errato.
-                long lockUntil = prefs.getLong(KEY_LOCK_UNTIL, 0L);
-                if (now < lockUntil) {
-                     mainHandler.post(() -> loginResult.setValue(LoginResult.LOCKED));
-                    Log.d("AuthVM", "emit " + LoginResult.LOCKED + " at " + System.nanoTime());
 
-                    return;
-                }
-
-                String saltB64 = prefs.getString(KEY_PIN_SALT, null);
-                String hashB64 = prefs.getString(KEY_PIN_HASH, null);
-
-                 // Fallback legacy: se non migrato, usa ancora user_pin
-                /*if (saltB64 == null || hashB64 == null) {
-                String legacy = prefs.getString("user_pin", null);
-                boolean ok = legacy != null && inputPin.equals(legacy);
-                if (ok) {
-                     prefs.edit()
-                          .putInt(KEY_FAILS, 0)
-                          .putInt(KEY_BACKOFF_STEP, 0)
-                          .putLong(KEY_LOCK_UNTIL, 0L)
-                          .apply();
-                     mainHandler.post(() -> loginResult.setValue(LoginResult.SUCCESS));
-                    Log.d("AuthVM", "emit " +  LoginResult.SUCCESS + " at " + System.nanoTime());
-
-                } else {
-                     int fails = prefs.getInt(KEY_FAILS, 0) + 1;
-                     prefs.edit().putInt(KEY_FAILS, fails).apply();
-                     mainHandler.post(() -> loginResult.setValue(LoginResult.INCORRECT_PIN));
-                    Log.d("AuthVM", "emit " + LoginResult.INCORRECT_PIN + " at " + System.nanoTime());
-
-                }
-                return;
-                }*/
-/*
-                // carica salt/hash
-                byte[] salt = Base64.decode(saltB64, Base64.NO_WRAP);
-                byte[] expected = Base64.decode(hashB64, Base64.NO_WRAP);
-                // verifica con confronto a tempo costante
-                char[] pinChars = inputPin.toCharArray();
-                boolean ok;
-                try {
-                    ok = SecurityUtils.verifyPin(pinChars, salt, expected);
-                } finally {
-                    java.util.Arrays.fill(pinChars, '\0');
-                }
-
-                if (ok) {
-                    prefs.edit()
-                         .putInt(KEY_FAILS, 0)
-                         .putInt(KEY_BACKOFF_STEP, 0)
-                         .putLong(KEY_LOCK_UNTIL, 0L)
-                         .apply();
-                    mainHandler.post(() -> loginResult.setValue(LoginResult.SUCCESS));
-
-                    Log.d("AuthVM", "loginResult = SUCCESS (via PIN)");
-                    Log.d("AuthVM", "emit " + LoginResult.SUCCESS + " at " + System.nanoTime());
-
-                } else {
-                    int fails = prefs.getInt(KEY_FAILS, 0) + 1;
-                    int step  = prefs.getInt(KEY_BACKOFF_STEP, 0);
-                    if (fails >= 5) {
-                             long[] backoff = {30_000L, 120_000L, 600_000L, 3_600_000L}; // 30s, 2m, 10m, 1h
-                             long duration = backoff[Math.min(step, backoff.length - 1)];
-                             prefs.edit()
-                                  .putInt(KEY_FAILS, 0)
-                                  .putInt(KEY_BACKOFF_STEP, step + 1)
-                                  .putLong(KEY_LOCK_UNTIL, now + duration)
-                                  .apply();
-                             mainHandler.post(() -> loginResult.setValue(LoginResult.LOCKED));
-                        Log.d("AuthVM", "emit " + LoginResult.LOCKED + " at " + System.nanoTime());
-
-                    } else {
-                             prefs.edit().putInt(KEY_FAILS, fails).apply();
-                             mainHandler.post(() -> loginResult.setValue(LoginResult.INCORRECT_PIN));
-                        Log.d("AuthVM", "emit " + LoginResult.INCORRECT_PIN + " at " + System.nanoTime());
-
-                    }
-                }
-
-            } catch (Exception e) {
-                mainHandler.post(() -> loginResult.setValue(LoginResult.INCORRECT_PIN));
-                Log.d("AuthVM", "emit " + LoginResult.INCORRECT_PIN + " at " + System.nanoTime());
-
-            }*/
             //PinManager.PinResult result = pinManager.verifyPin(inputPin);
             AuthManager.AuthResult result = authManager.verifyPin(inputPin);
             mainHandler.post(() -> {
@@ -196,7 +102,7 @@ public class AuthViewModel extends AndroidViewModel {
                         loginResult.setValue(LoginResult.INCORRECT_PIN);
                         break;
                     default:
-                        // Gestione errore generico come PIN errato per sicurezza UI
+                        // Gestione errore generico come "PIN errato"
                         loginResult.setValue(LoginResult.INCORRECT_PIN);
                         break;
                 }
@@ -221,7 +127,7 @@ public class AuthViewModel extends AndroidViewModel {
                         .putString(KEY_PIN_HASH, Base64.encodeToString(hash, Base64.NO_WRAP))
                         .remove("user_pin") // migrazione: elimina lo schema vecchio
                         .apply();//applica le modifiche in modo asincrono
-                Arrays.fill(hash, (byte) 0); // azzero il contenuto di hash...forse dovrei azzerare anche il newPin, ma come fare??? DA RIVEDERE
+                Arrays.fill(hash, (byte) 0); // azzero il contenuto di hash
                 java.util.Arrays.fill(pinChars, '\0'); // azzero il contenuto di pinChars
                 //  prepara (se possibile) la chiave biometrica AES-GCM nel Keystore, senza UI
                 try {// Tenta enrollment chiave biometrica (se possibile)
@@ -231,7 +137,6 @@ public class AuthViewModel extends AndroidViewModel {
                 } catch (Exception e) {
                     android.util.Log.w("AuthViewModel", "ensureBiometricKey failed", e);
                 }
-                // (Facoltativo) Si potrebbe impostare una flag "onboarding completato" qui
                 mainHandler.post(() -> pinCreated.setValue(new Event<>(true)));
             } catch (Exception e) {
                 mainHandler.post(() -> pinCreated.setValue(new Event<>(false)));
@@ -270,7 +175,7 @@ public class AuthViewModel extends AndroidViewModel {
                 e.printStackTrace();
                 mainHandler.post(() -> pinChanged.setValue(new Event<>(false)));
             } finally {
-                // PULIZIA CRITICA: Rimuoviamo il vecchio PIN dalla memoria
+                // Rimuoviamo il vecchio PIN dalla memoria
                 tempOldPinForChange = null;
             }
         });
@@ -282,7 +187,7 @@ public class AuthViewModel extends AndroidViewModel {
      Vengono rilevati e penalizzati (score ≤ 20) quattro pattern deboli:
      cifre tutte uguali, sequenza strettamente ascendente, sequenza strettamente
      discendente, blocco ripetuto (es. "12341234"). Se si usano ≤ 2 cifre distinte
-     il cap scende a 40. Un prefisso da "anno" (19xx / 20xx) porta il cap a 50.
+     il cap scende a 40. La data di un anno (19xx / 20xx) porta il cap a 50.
      Se il PIN è abbastanza lungo, privo di pattern banali e usa ≥ 4 cifre distinte,
      viene aggiunto un bonus di 8 punti (max 100).
      Il risultato finale è sempre nel range [0, 100] */

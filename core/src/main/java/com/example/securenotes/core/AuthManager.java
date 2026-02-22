@@ -138,6 +138,7 @@ public class AuthManager {
         ensureBiometricKey();//Assicura che esista la chiave biometrica.
         KeyStore ks = KeyStore.getInstance(KEYSTORE_PROVIDER);
         ks.load(null);
+        //Otteniamo un riferimento chiave dell'AndroidKeyStore
         SecretKey key = (SecretKey) ks.getKey(BIOMETRIC_KEY_ALIAS, null);
         Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
         c.init(Cipher.ENCRYPT_MODE, key);
@@ -148,6 +149,7 @@ public class AuthManager {
     public Cipher getBiometricDecryptCipher(byte[] iv) throws Exception {
         KeyStore ks = KeyStore.getInstance(KEYSTORE_PROVIDER);
         ks.load(null);
+        //Otteniamo un riferimento chiave dell'AndroidKeyStore
         SecretKey key = (SecretKey) ks.getKey(BIOMETRIC_KEY_ALIAS, null);
         Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
         c.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, iv));//128 è la lunghezza del Tag associato (concatenato) alla masterkey cifrata per garantirne l’integrità
@@ -167,7 +169,7 @@ public class AuthManager {
                     .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                     .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
                     .setUserAuthenticationRequired(true)//con questo set a “true” imponiamo che la chiave venga usata solo in successione alla “prova dell’impronta” (in pratica non può essere usata da un malware in background se l’utente non ha appena toccato il sensore biometrico.
-                    // SICUREZZA CRITICA: il successivo set invalida la chiave se viene aggiunto un nuovo dito nel sistema Android.
+                    // SICUREZZA: il successivo set invalida la chiave se viene aggiunto un nuovo dito nel sistema Android.
                     // Protegge contro chi conosce il PIN di sblocco telefono e aggiunge la propria impronta.
                     .setInvalidatedByBiometricEnrollment(true);
 

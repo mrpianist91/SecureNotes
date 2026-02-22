@@ -80,10 +80,7 @@ public class NoteEditFragment extends Fragment {
         } else {
             // Modalità "creazione" nuova nota
             editingNote = new Note();
-            /*UUID è la classe java.util.UUID, che modella un Universally Unique Identifier a 128 bit.
-              randomUUID() crea un UUID di versione 4 (detto “random”),
-               cioè un valore generato casualmente con un PRNG crittograficamente forte (SecureRandom)*/
-            editingNote.id = UUID.randomUUID().toString();
+            editingNote.id = UUID.randomUUID().toString();//generiamo un id casuale con SecureRandom (.randomUUID())
             editingNote.title = "";
             editingNote.body = "";
             editingNote.tag = Note.TAG_FACCENDE; // Default prima categoria (ad es. "Faccende")
@@ -104,7 +101,7 @@ public class NoteEditFragment extends Fragment {
           Guarda ExposedDropdownMenu.docx in cartella!*/
         binding.dropdownTag.setAdapter(adapter);
         // Se la nota ha un tag specifico, seleziona la voce (del dropdown menù) corrispondente
-        /*Se stai modificando una nota che ha già un tag (editingNote.tag non è null):
+        /*Se si modifica una nota che ha già un tag (editingNote.tag non è null):
           Converte l’array tagOptions in una List temporanea per usare indexOf(...) e trovare l’indice del tag assegnato.
           Se l’indice è valido (>= 0), imposta il testo del dropdown al tag corrispondente.
           Il secondo parametro “false” evita che l’impostazione del testo inneschi automaticamente il filtro (di ricerca) dell’AutoCompleteTextView o apra il menu:
@@ -174,7 +171,7 @@ public class NoteEditFragment extends Fragment {
             MaterialToolbar toolbar = requireActivity().findViewById(toolbarId);
             if (toolbar != null) {
                 toolbar.setNavigationOnClickListener(v -> {
-                    // Simuliamo la pressione del tasto Back.
+                    // Simula la pressione del tasto Back.
                     // Questo attiverà il callback definito al punto 1, eseguendo saveAndExit().
                     requireActivity().getOnBackPressedDispatcher().onBackPressed();
                 });

@@ -83,11 +83,10 @@ public class LoginFragment extends Fragment {
         // Se esiste già un lock persistito (da tentativi precedenti), riflettilo subito in UI
         startLockCountdown(authViewModel.getLockRemainingMillis());
         // Controllo di sicurezza: blocca l'accesso se il dispositivo è rootato.
-        // Usiamo solo i check ad alta affidabilità per evitare falsi positivi su dispositivi
-        // con developer options attive o con su binary non eseguibile (comune su API 26).
+        // Usiamo solo i check ad alta affidabilità per evitare falsi positivi
         // - detectRootManagementApps: app di root presenti (SuperSU, Magisk Manager, ecc.)
         // - checkForMagiskBinary: binary di Magisk rilevato
-        // - checkSuExists: su è effettivamente eseguibile (il check più definitivo)
+        // - checkSuExists: SU esistente/attivo
         RootBeer rootBeer = new RootBeer(requireContext());
         boolean isRooted = rootBeer.detectRootManagementApps()
                 || rootBeer.checkForMagiskBinary()
@@ -163,7 +162,7 @@ public class LoginFragment extends Fragment {
         BiometricManager biometricManager = BiometricManager.from(requireContext());
         boolean bioAvailable = (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 == BiometricManager.BIOMETRIC_SUCCESS);
-        // NEW: Controlliamo il flag in AuthManager
+        //Controlliamo il flag in AuthManager
         boolean isEnabledInSettings = AuthManager.getInstance(requireContext()).isBiometricEnabled();
         boolean hasBioWrap = SecurityUtils.hasBioWrap(requireContext());
         if (bioAvailable && isEnabledInSettings && hasBioWrap) {
@@ -171,11 +170,9 @@ public class LoginFragment extends Fragment {
             binding.pinGroup.setVisibility(View.GONE); // nasconde PIN finché non serve
             binding.btnUsePin.setVisibility(View.VISIBLE);
         } else {
-            // Nessuna busta BIO o hardware non disponibile → vai subito di PIN
+            // Nessuna busta BIO o hardware non disponibile → vai di PIN
            showPinLoginUI();
-            /* binding.tvStatus.setText(getString(R.string.login_title));
-            binding.pinGroup.setVisibility(View.VISIBLE);
-            binding.btnUsePin.setVisibility(View.GONE);*/
+
         }
 
         // Pulsante "Usa PIN" (fallback esplicito dall'utente)
@@ -215,9 +212,7 @@ public class LoginFragment extends Fragment {
             byte[] iv = wrap.first;
             byte[] ct = wrap.second;
 
-            // Cipher in DECRYPT_MODE con l'IV corretto (stessa chiave Keystore del provisioning)
-            //BiometricHelper.ensureBiometricKey(requireContext());
-            //final Cipher dec = BiometricHelper.getDecryptCipher(iv);
+
 
             // Otteniamo il Cipher da AuthManager
             // Questo metodo lancia KeyPermanentlyInvalidatedException se sono state aggiunte impronte!
@@ -239,16 +234,13 @@ public class LoginFragment extends Fragment {
                             showPinLoginUI();
                             return;
                         }
-                        // Decifra la passphrase DB; qui la userai per aprire il DB se necessario
+                        // Decifra la passphrase DB; si userà per aprire il DB
                         byte[] pass = armed.doFinal(ct);
                         // Apre il database cifrato con SQLCipher (istanza singleton)
                         AppDatabase.openWithPassphrase(requireContext(), pass);
-                        SecurityUtils.zeroize(pass); // se non la usi qui, azzera per sicurezza
+                        SecurityUtils.zeroize(pass); //azzera per sicurezza
                         //Notifica successo Biometrico
                         notifyLoginSuccess();
-                        // Naviga avanti (lo stack auth viene pulito dall'action nel grafo)
-                        //NavController nav = NavHostFragment.findNavController(LoginFragment.this);
-                        //nav.navigate(R.id.action_loginFragment_to_notesListFragment);
                     } catch (GeneralSecurityException e) {
                         Toast.makeText(requireContext(), R.string.bio_generic_crypto_error, Toast.LENGTH_SHORT).show();
                         showPinLoginUI();
@@ -350,11 +342,7 @@ public class LoginFragment extends Fragment {
     }
 
     /** Cancella il prompt biometrico se attivo (ad esempio quando l'utente passa a PIN) */
-    private void cancelBiometricPrompt() {
-        // BiometricPrompt di Android si chiude automaticamente quando l'utente preme "Usa PIN" o esce,
-        // quindi in genere non è necessario annullarlo manualmente.
-        // Questa funzione può rimanere vuota o gestire un CancellationSignal se implementato.
-    }
+    private void cancelBiometricPrompt() {}
 
     @Override
     public void onResume() {

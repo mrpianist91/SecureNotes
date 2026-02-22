@@ -151,9 +151,9 @@ public class VaultRepositoryImpl implements VaultRepository {
                 }
 
                 // 4. Genera URI (speciale) sicuro tramite FileProvider...NB Non passiamo all'app esterna il percorso fisico (/data/user/0/.../vault_temp/file.pdf). Le app moderne non hanno il permesso di leggere i file privati le une delle altre.
-                // Il provider authority (secondo argomento di .getUriForFile()) deve corrispondere a quello nel Manifest...è il nome del dominio del provider (es. com.example.securenotes.provider) Quando passi l'URI a un'altra app (es. il PDF Viewer), l'URI sarà: content://com.example.securenotes.provider/vault_temp/miofile.pdf.
-                // Quando il PDF Viewer prova ad aprirlo, il sistema Android controlla l'authority (com.example.securenotes.provider), capisce che appartiene alla TUA app, e verifica se tu hai concesso il permesso (FLAG_GRANT_READ_URI_PERMISSION). Se l'authority non combacia tra codice e Manifest, il sistema non trova il "garante" del file e lancia un crash (SecurityException).
-                Uri uri = /*androidx.core.content.*/FileProvider.getUriForFile(context, context.getPackageName() + ".provider", tempFile); // Permetti all'app che riceve questo Intent (es. il PDF Viewer) di leggere questo specifico "tempfile", ma solo per questa volta
+                // Il provider authority (secondo argomento di .getUriForFile()) deve corrispondere a quello nel Manifest...è il nome del dominio del provider (es. com.example.securenotes.provider). Quando si passa l'URI a un'altra app (es. il PDF Viewer), l'URI sarà: content://com.example.securenotes.provider/vault_temp/miofile.pdf.
+                // Quando il PDF Viewer prova ad aprirlo, il sistema Android controlla l'authority (com.example.securenotes.provider), capisce che appartiene alla TUA app, e verifica se tu hai concesso il permesso (FLAG_GRANT_READ_URI_PERMISSION). Se l'authority non combacia tra codice e Manifest, il sistema crasha (SecurityException).
+                Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".provider", tempFile); // Permetti all'app che riceve questo Intent (es. il PDF Viewer) di leggere questo specifico "tempfile", ma solo per questa volta
 
                 // Callback su Main Thread
                 mainHandler.post(() -> listener.onDecrypted(uri));

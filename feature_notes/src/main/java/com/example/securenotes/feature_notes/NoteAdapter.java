@@ -23,7 +23,7 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
     private final OnNoteClickListener clickListener;
     private List<Note> notes = new ArrayList<>();
 
-    //Ricordiamo che notesListFragment implementa l’interfaccia NoteAdapter.OnNoteClickListener.
+    //NB notesListFragment implementa l’interfaccia NoteAdapter.OnNoteClickListener.
     //Infatti dentro notesListFragment viene passato “this” come argomento dell’istanza di NoteAdapter
     public NoteAdapter(OnNoteClickListener clickListener) {
         this.clickListener = clickListener;
@@ -47,11 +47,10 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         return new NoteViewHolder(binding);
     }
 
-    /*Questo è il metodo che viene chiamato continuamente. Il suo compito è prendere un ViewHolder riciclato
-     (una "scatola" già esistente, magari "sporca" con dati vecchi) e popolarlo con i dati corretti per una nuova posizione.
+    /*Questo metodo viene chiamato continuamente. Il suo compito è prendere un ViewHolder riciclato e popolarlo con i dati corretti per una nuova posizione.
      Esempio: Stai scorrendo la lista. La Nota #1 esce dalla parte superiore dello schermo.
-     Il suo ViewHolder non viene distrutto, ma messo nella riserva. Appena la Nota #11 deve apparire in basso,
-     il sistema prende il ViewHolder riciclato della Nota #1 e chiama onBindViewHolder() per aggiornare i suoi TextView con il titolo e il testo della Nota #11.*/
+     Il suo ViewHolder non viene distrutto, ma messo nella riserva. Appena la Nota 11 deve apparire in basso,
+     il sistema prende il ViewHolder riciclato della Nota #1 e chiama onBindViewHolder() per aggiornare i suoi TextView con il titolo e il testo della Nota 11.*/
     @Override
     public void onBindViewHolder(@NonNull NoteViewHolder holder, int
             position) {

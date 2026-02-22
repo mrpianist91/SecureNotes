@@ -55,24 +55,7 @@ public class CreatePinFragment extends Fragment {
     // Flag per la modalità (onboarding vs cambio pin)
     private boolean isChangeMode = false;
 
-    // Questo metodo serve per dire al sistema che vuoi gestire la Toolbar (per il tasto Back)
-    /*@Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
-    }*/
 
-    // 2. Aggiungi questo metodo per intercettare il click sulla freccia
-    /*@Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        // android.R.id.home è l'ID di sistema della freccia "Indietro" nella Toolbar
-        if (item.getItemId() == android.R.id.home) {
-            // Chiamiamo il nostro metodo helper che fa il popBackStack() sicuro
-            navigateBack();
-            return true; // Indichiamo che abbiamo gestito l'evento
-        }
-        return super.onOptionsItemSelected(item);
-    }*/
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentCreatePinBinding.inflate(inflater, container, false);
@@ -109,13 +92,6 @@ public class CreatePinFragment extends Fragment {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {//lambda invocata quando si torna dalle Impostazioni; "result" è il valore tornato
 
-                    /*BiometricHelper.BiometricCapability cap = BiometricHelper.ensureBiometricKey(requireContext());
-                    if (cap == BiometricHelper.BiometricCapability.AVAILABLE) {
-                      // Enrollment completato: puoi proseguire col provisioning sicuro della passphrase DB usando la biometria:
-                        provisionDatabaseSecretWithBiometrics();
-                    } else { //Enrollment non andato a buon fine
-                        Toast.makeText(requireContext(), "Completa l'attivazione biometrica per continuare", Toast.LENGTH_LONG).show();
-                    }*/
 
                     // Controlliamo solo se l'utente ha configurato qualcosa
                     BiometricManager bm = BiometricManager.from(requireContext());
@@ -184,7 +160,7 @@ public class CreatePinFragment extends Fragment {
 
         // Pulsante per creare/aggiornare il PIN
         binding.btnCreatePin.setOnClickListener(v -> {
-            String pin = binding.etPin.getText().toString().trim();//trim toglie gli spazi vuoti all'inizio e alla fine della stringa...forse è ridondante perchè teoricamnte la textview accetta solo numeri
+            String pin = binding.etPin.getText().toString().trim();//trim toglie gli spazi vuoti all'inizio e alla fine della stringa...è ridondante perchè teoricamnte la textview accetta solo numeri. DA ELIMINARE.
             String confirm = binding.etConfirmPin.getText().toString().trim();
             int minLen = getResources().getInteger(R.integer.min_pin_length);
             if (pin.length() < minLen) {
@@ -204,36 +180,6 @@ public class CreatePinFragment extends Fragment {
                 authViewModel.createPin(pin);
             }
 
-            // Salva il PIN in modo sicuro tramite ViewModel
-           // authViewModel.createPin(pin);
-
-            /*// 2) Provisioning del segreto DB in base alla biometria
-            BiometricHelper.BiometricCapability cap = BiometricHelper.ensureBiometricKey(requireContext());
-            if (cap == BiometricHelper.BiometricCapability.NOT_ENROLLED) {
-                // Biometria presente ma non configurata → forzi enrollment (non si prosegue)
-                enrollLauncher.launch(BiometricHelper.enrollmentIntent());
-            } else if (cap == BiometricHelper.BiometricCapability.AVAILABLE) {
-                provisionDatabaseSecretWithBiometrics();
-            } else { // NO_HARDWARE
-                provisionDatabaseSecretWithPinFallback(pin);
-            }*/
-
-
-            // 2) Controllo Biometria
-            /*BiometricManager bm = BiometricManager.from(requireContext());
-            int canAuth = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
-
-            if (canAuth == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
-                // Biometria possibile ma non configurata -> Mandiamo l'utente alle impostazioni
-                // Usiamo l'Intent fornito da AuthManager
-                Intent enrollIntent = AuthManager.getInstance(requireContext()).getEnrollmentIntent();
-                enrollLauncher.launch(enrollIntent);
-            } else if (canAuth == BiometricManager.BIOMETRIC_SUCCESS) {
-                provisionDatabaseSecretWithBiometrics();
-            } else {
-                // Hardware non disponibile o altri errori -> Fallback PIN
-                provisionDatabaseSecretWithPinFallback(pin);
-            }*/
 
         });
 
@@ -252,7 +198,7 @@ public class CreatePinFragment extends Fragment {
             }
         });
 
-        // 2. Cambio (Settings)
+        // 2. Cambio PIN (Settings)
         authViewModel.getPinChanged().observe(getViewLifecycleOwner(), event -> {
             // Stessa logica per il cambio PIN
             Boolean success = event.getContentIfNotHandled();
@@ -260,9 +206,6 @@ public class CreatePinFragment extends Fragment {
                 if (success) {
                     Toast.makeText(requireContext(), "PIN modificato con successo", Toast.LENGTH_SHORT).show();
                     // Il PIN è cambiato e il DB è stato re-wrappato.
-                    // Non serve rifare il provisioning biometrico completo se l'utente non lo desidera,
-                    // ma per sicurezza manteniamo la logica esistente: controlliamo se si può usare la bio.
-                   // handlePostPinCreation(binding.etPin.getText().toString().trim());
                     navigateBack();
                 } else { // false
                     Toast.makeText(requireContext(), "Errore durante il cambio PIN", Toast.LENGTH_SHORT).show();
@@ -338,11 +281,6 @@ public class CreatePinFragment extends Fragment {
             Pair<byte[], byte[]> pinWrap = SecurityUtils.aesGcmEncrypt(pinKey, passphrase); // (iv, ct)
             Arrays.fill(pinKey, (byte)0);
             SecurityUtils.saveWrappedDbWithPin(requireContext(), salt, pinWrap.first, pinWrap.second);
-            // 2) Prepara un Cipher AES/GCM per CIFRARE con la chiave del Keystore.
-            //    getEncryptCipher() fa: Cipher.getInstance("AES/GCM/NoPadding") + init(ENCRYPT_MODE, key)
-            //    e genera un IV random interno (lo leggerai con cipher.getIV() DOPO il prompt).
-
-            //Cipher enc = BiometricHelper.getEncryptCipher(); // IV random interno
 
             //Otteniamo il Cipher da AuthManager invece che da BiometricHelper
             Cipher enc = AuthManager.getInstance(requireContext()).getBiometricEncryptCipher();
@@ -395,8 +333,8 @@ public class CreatePinFragment extends Fragment {
             //    (cioè la cifratura) sarà consentito SOLO dopo l'autenticazione.
             prompt.authenticate(info, new BiometricPrompt.CryptoObject(enc));
         } catch (Exception e) {
-            // 8) Se non riesci neppure ad arrivare al prompt (es. chiave mancante),
-            //    notifica l'errore e azzera la passphrase.
+            // 8) Se non si riesce neppure ad arrivare al prompt (es. chiave mancante),
+            //    si notifica l'errore e azzera la passphrase.
             Log.e("CreatePin", "Biometric crypto error", e);
             Arrays.fill(passphrase, (byte)0);
             Toast.makeText(requireContext(), "Biometria non disponibile", Toast.LENGTH_SHORT).show();
@@ -405,7 +343,7 @@ public class CreatePinFragment extends Fragment {
         }
     }
 
-    /** Fallback software: KDF(PIN) + AES-GCM; salva salt+IV+CT. */
+    /** Fallback: KDF(PIN) + AES-GCM; salva salt+IV+CT. */
     private void provisionDatabaseSecretWithPinFallback(@NonNull String pin) {
         byte[] passphrase = SecurityUtils.generateRandom(32);
         try {

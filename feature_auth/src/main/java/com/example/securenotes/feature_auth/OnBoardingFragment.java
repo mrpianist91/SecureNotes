@@ -108,7 +108,7 @@ public class OnBoardingFragment extends Fragment {
         private final String[] descriptions = {
                 "Prendi appunti in modo sicuro con crittografia end-to-end.",
                 "Proteggi l'accesso con PIN e impronta digitale.",
-                "Le tue note, solo dove vuoi tu. Backup cifrati automatici."
+                "Le tue note e i files più importanti sono al sicuro. Possibilità di Backup cifrati."
         };
         // (Nota: potremmo anche avere riferimenti a immagini da mostrare per ogni slide)
 

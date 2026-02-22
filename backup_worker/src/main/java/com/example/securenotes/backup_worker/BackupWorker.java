@@ -139,17 +139,12 @@ public class BackupWorker extends Worker {
             fileOut.write(iv);
             //INIZIO CIFRATURA
 
-            /*Struttura a "Matrioska":
-ZipOutputStream (zos): È l'imbuto superiore.
-Tu gli dai dei file (note, JSON, PDF).
-Lui li comprime e li trasforma in byte compressi.
-Questi byte vanno dentro cos.
-CipherOutputStream (cos): È il tunnel crittografico.
-Riceve i byte compressi dallo Zip.
-Li cifra usando AES-GCM.
-Questi byte vanno dentro fileOut.
-OutputStream (fileOut): È il rubinetto finale.
-Scrive i byte cifrati fisicamente sul disco del telefono.
+            /*Struttura a "matrioska":
+ZipOutputStream ("zos"): È l'imbuto superiore.
+Prende dei file (note, JSON, PDF), li comprime e li trasforma in byte compressi.
+Questi byte vanno dentro "cos" (CipherOutputStream), il tunnel crittografico.
+Riceve i byte compressi dallo Zip. Li cifra usando AES-GCM.
+Questi byte finiscono dentro fileOut(fileOut) che scrive i byte cifrati fisicamente sul disco del telefono.
 Poiché lo ZipOutputStream è dentro il CipherOutputStream, tutto ciò che riguarda lo Zip (inclusi i nomi dei file) viene cifrato. Un attaccante vedrà solo un unico blob di dati illeggibile.
 */
             try (CipherOutputStream cos = new CipherOutputStream(fileOut, cipher);
