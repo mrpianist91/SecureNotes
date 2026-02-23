@@ -50,7 +50,7 @@ public class VaultRepositoryImpl implements VaultRepository {
                 //Quando fai una query() al ContentResolver per avere info su un file, lui non ti ridà un oggetto "File", ma ti ridà un Cursor. Il Cursor è letteralmente un puntatore che scorre sopra le righe di una tabella virtuale dei risultati (in Android qualsiasi fonte di dati viene trattata come se fosse un DB relazionale).
                 String fileName = "unknown_file";//stringa di destinazione
                 try (Cursor cursor = context.getContentResolver().query(sourceUri, null, null, null, null)) {
-                    if (cursor != null && cursor.moveToFirst()) {//il Cursore è inizialmente posizionato prima della prima riga (indice -1). Dobbiamo dire moveToFirst() per dirgli: "Spostati sulla riga 0"
+                    if (cursor != null && cursor.moveToFirst()) {//il Cursor(e) è inizialmente posizionato prima della prima riga (indice -1). Dobbiamo dire moveToFirst() per dirgli di spostarsi sulla riga 0"
                         int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);//OpenableColumns.DISPLAY_NAME è una costante standard di Android che contiene il nome della colonna (una stringa, solitamente _display_name) dove il Content Provider memorizza il nome del file
                         if(index >= 0) fileName = cursor.getString(index);
                     }

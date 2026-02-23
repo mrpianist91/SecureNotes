@@ -32,15 +32,15 @@ import static org.junit.Assert.fail;
 
 /*Spiegazione Tecnica dei Test
 
-verifyDatabaseFileIsNotPlainSQLite: SQLCipher funziona criptando le pagine del database. I primi 16 byte di un file SQLite contengono una firma fissa.
+verifyDatabaseFileIsNotPlainSQLite: SQLCipher funziona criptando le tabelle del database. I primi 16 byte di un file SQLite contengono una firma fissa.
  SQLCipher sostituisce questa firma con un "Salt" casuale necessario per derivare la chiave di cifratura. Verificando che l'header non sia standard, proviamo che il motore di cifratura è attivo.
 
-verifyStandardSQLiteCannotOpenDatabase: È la prova del nove. Se usiamo il driver SQLite di sistema (che non conosce password),
+verifyStandardSQLiteCannotOpenDatabase: Se usiamo il driver SQLite di sistema (che non conosce password),
  deve considerare il file come "corrotto" o "non valido". Se lo apre, significa che SQLCipher non è stato agganciato correttamente.
 
 verifySharedPreferencesAreNotPlaintext: EncryptedSharedPreferences cifra sia le chiavi che i valori.
- Leggendo il file XML grezzo (come farebbe un malware con accesso root), dobbiamo vedere solo stringhe incomprensibili
- e non secret_token o MY_SUPER_SECRET_VALUE_XYZ.
+ Leggendo il file XML (come farebbe un malware con accesso root), dobbiamo vedere solo stringhe incomprensibili
+ e non secret_token o MY_SUPER_SECRET_VALUE.
 
  NB per evitare che le operazioni di scrittura asincrona del DB rompessero i test ho fatto ricorso al metodo di lettura "sincrona" che già avevo usato per i Backup: getAllNotesSync()*/
 
@@ -51,7 +51,7 @@ public class DataAtRestSecurityTest {
     // Dati di test sensibili
     private static final byte[] FAKE_PASSPHRASE = new byte[32]; // 32 byte di zeri per test
     private static final String SENSITIVE_PREF_KEY = "secret_token";
-    private static final String SENSITIVE_PREF_VALUE = "MY_SUPER_SECRET_VALUE_XYZ";
+    private static final String SENSITIVE_PREF_VALUE = "MY_SUPER_SECRET_VALUE";
 
     @Before //Questo metodo viene eseguito automaticamente prima di ogni singolo test (@Test).
     // È fondamentale per partire da una "tabula rasa" (stato pulito).
@@ -141,7 +141,7 @@ public class DataAtRestSecurityTest {
             // Tentiamo una lettura per essere sicuri che non sia solo aperto "vuoto"
             plainDb.getVersion();
             plainDb.close();
-            fail("ERRORE CRITICO: Il database è stato aperto con le API SQLite standard (non cifrato!)");
+            fail("ERRORE: Il database è stato aperto con le API SQLite standard (non cifrato!)");
         } catch (SQLiteException e) {
             // Successo: L'apertura è fallita come previsto
             System.out.println("Test passato: Tentativo di apertura fallito con errore: " + e.getMessage());
@@ -183,7 +183,7 @@ public class DataAtRestSecurityTest {
         }
 
         String rawXml = fileContent.toString();
-        System.out.println("Contenuto XML Preferenze: " + rawXml);
+        System.out.println("Contenuto XML Preference: " + rawXml);
 
         // 4. Asserzioni di Sicurezza
         // A. La chiave in chiaro NON deve esistere

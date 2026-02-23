@@ -47,8 +47,8 @@ import java.util.Set;
  *
  * Implementa "SystemInteractionListener" per evitare che durante le operazioni SAF (Storage Access Framework) l'utente venga forzato al logout: 1) al rientro dal FilePicker nelle Impostazioni (durante il Backup),
  * e 2) dopo la conferma sul file da importare nel Vault, il main vada in Stop bloccando la sessione (forzando di conseguenza una nuova autenticazione).
- * ANALISI DEL PROBLEMA: la MainActivity va in Pausa o Stop durante le operazioni del File Picker, e dal momento che il SessionObserver segue una politica di "zero trust", butterebbe fuori l'utente.
- * NB nel caso dell'interfaccia SystemInteractionListener, si è preferita definirla nel modulo condiviso (incluso) sia dal modulo :app che :feature_vault, cioè il modulo :core, in modo che fosse visibile a tutti
+ * Infatti la MainActivity va in Pausa o Stop durante le operazioni del File Picker, e dal momento che il SessionObserver segue una politica di "zero trust", butterebbe fuori l'utente.
+ * NB l'interfaccia SystemInteractionListener, è definita nel modulo condiviso (incluso) sia dal modulo :app che :feature_vault, cioè il modulo :core, in modo che fosse visibile a tutti
  */
 
 public class MainActivity extends AppCompatActivity implements AuthListener, SystemInteractionListener {
@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
     public void onAuthSuccess() {
         // Recupera il timeout dalle preferenze
         long timeoutMs = new PreferenceManager(this).getSessionTimeoutMs();
-        // Avvia il SessionObserver (possibile perché siamo nel modulo :app)
+        // Avvia il SessionObserver
         SessionObserver.startSession(timeoutMs);
         Log.d("MainActivity", "Sessione avviata con timeout: " + timeoutMs);
     }
@@ -106,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
         NavHostFragment navHost =
                 (NavHostFragment) getSupportFragmentManager()
                         .findFragmentById(R.id.fragmentContainerView);
-        // Controllo difensivo se il fragment non è ancora istanziato (raro ma possibile)
+        // Ottieni il NavController
         if (navHost == null) return;
         NavController navController = navHost.getNavController();
 
@@ -114,8 +114,8 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
         /*appBarConfiguration = new AppBarConfiguration.Builder(R.id.notesListFragment).build();
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);*/
 
-        // 4. CONFIGURAZIONE "TOP LEVEL DESTINATIONS"
-        // Definiamo quali schermate sono "radici" della navigazione (Note, Vault, Settings).
+        // CONFIGURAZIONE "DESTINAZIONI PRINCIPALI"
+        // Definiamo quali sono le schermate principali della navigazione (Note, Vault, Settings).
         // In queste schermate NON verrà mostrata la freccia "Indietro" (Up Button) nella Toolbar.
         Set<Integer> topLevelDestinations = new HashSet<>();
         topLevelDestinations.add(R.id.notesListFragment);
@@ -127,12 +127,12 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
         // Collega la Toolbar al NavController usando la configurazione definita
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
 
-        // 5. SETUP BOTTOM NAVIGATION VIEW
+        // SETUP BOTTOM NAVIGATION VIEW
         // Questo metodo collega automaticamente i click sulla BottomBar alla navigazione.
         // Funziona perché gli ID nel menu_bottom_nav.xml coincidono con gli ID nel nav_graph.xml.
         NavigationUI.setupWithNavController(binding.bottomNav, navController);
 
-        // 6.(Gestione Visibilità BottomBar)
+        // (Gestione Visibilità BottomBar)
         // La barra deve apparire SOLO nelle destinazioni principali (Top Level).
         // Deve sparire in: Splash, Login, Onboarding, Modifica Nota, etc.
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
@@ -142,7 +142,7 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
             if (topLevelDestinations.contains(id)) {
                 binding.bottomNav.setVisibility(View.VISIBLE);
 
-                // Opzionale: Reinneschiamo il timer di sessione quando si atterra su una schermata principale
+                // Reinneschiamo il timer di sessione quando si approda su una schermata principale
                 // per garantire che l'attività venga registrata.
                 refreshSession();
             } else {
@@ -176,6 +176,8 @@ public class MainActivity extends AppCompatActivity implements AuthListener, Sys
         SessionObserver.resetSessionTimer();
     }
 
+    //Gestisce il comportamento del pulsante "freccia su" (Up Button) nella Toolbar quando l'utente ci clicca
+    //per tornare indietro nella navigazione.
     @Override
     public boolean onSupportNavigateUp() {
         NavHostFragment navHost = (NavHostFragment) getSupportFragmentManager()

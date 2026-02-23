@@ -44,7 +44,7 @@ public class VaultFragment extends Fragment {
 
     // Listener per comunicare con l'Activity (Sessione)
     private SystemInteractionListener interactionListener;
-    // --- 1. Gestione Attach/Detach del Listener ---
+    // Gestione Attach/Detach del Listener
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
@@ -60,8 +60,6 @@ public class VaultFragment extends Fragment {
         super.onDetach();
         interactionListener = null;
     }
-    // Stato del Gatekeeper: default FALSE (bloccato)...passato al VaultViewModel per bug su rotazione schermo!
-    //private boolean isUnlocked = false;
 
     // Launcher importazione file
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
@@ -70,8 +68,7 @@ public class VaultFragment extends Fragment {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     viewModel.importFile(result.getData().getData());
                 }
-                // Nota: Non serve reimpostare nulla qui. Al ritorno, onStart() del SessionObserver
-                // troverà la sessione ancora valida (perché non invalidata in onStop) e riprenderà il timer.
+                //Al ritorno, onStart() del SessionObserver troverà la sessione ancora valida (perché non invalidata in onStop) e riprenderà il timer.
             }
     );
 
@@ -209,7 +206,7 @@ public class VaultFragment extends Fragment {
         }
     }
 
-    //UI STATES (Coerenza Visiva)
+    //STATO UI
 
     //Stato 1: Vault Bloccato, Biometria in corso o opzione "Usa PIN" visibile
     private void lockUiState() {

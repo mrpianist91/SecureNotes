@@ -60,8 +60,6 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         holder.tagChip.setText(note.tag);
         if (note.expiresAt != 0) {//se nota temporanea..mettiamo l’icona dell’orologio
             holder.tagChip.setChipIcon(ContextCompat.getDrawable(holder.tagChip.getContext(), R.drawable.ic_clock));
-            /*holder.tagChip.setChipIconTintResource(android.R.color.black); // Icona orologio color nero (adattabile a tema)
-            */
             holder.tagChip.setChipIconVisible(true);
         } else {//se l'icona è temporanea...
             /*Importante: non nascondono l’intero Chip. Nascondono solo l’icona dell’orologio. Il testo del tag resta visibile!

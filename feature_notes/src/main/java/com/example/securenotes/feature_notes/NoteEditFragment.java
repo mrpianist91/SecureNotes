@@ -60,7 +60,7 @@ public class NoteEditFragment extends Fragment {
         NoteDao dao = AppDatabase.getInstance().noteDao();
         NoteRepository repo = new NoteRepositoryImpl(dao);
         viewModel = new ViewModelProvider(requireActivity(), new NotesViewModelFactory(repo)).get(NotesViewModel.class);
-        // Recupera l'ID della nota passato tramite Safe Args (se presente)
+        // Recupera l'ID della nota passato tramite arguments (se esiste)
         String noteId = getArguments() != null ? getArguments().getString("noteId") : null;
         if (noteId != null) {
         // Modalità "modifica" nota esistente
@@ -68,7 +68,7 @@ public class NoteEditFragment extends Fragment {
             Note noteFromVM = viewModel.findNoteById(noteId);
             editingNote = (noteFromVM != null) ? noteFromVM : viewModel.getCurrentNote();
             if (editingNote == null) {
-                 // Se non trovata in VM, carica in modo sincrono dal DB (evitare se possibile)
+                 // Se non trovata in VM, carica in modo sincrono dal DB
                 editingNote = dao.getNoteById(noteId);
             }
             if (editingNote == null) {

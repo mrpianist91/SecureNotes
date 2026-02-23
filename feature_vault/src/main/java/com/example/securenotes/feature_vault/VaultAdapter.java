@@ -47,14 +47,14 @@ public class VaultAdapter extends ListAdapter<VaultFile, VaultAdapter.ViewHolder
 
     class ViewHolder extends RecyclerView.ViewHolder {
         private final ItemVaultFileBinding binding;
-        // Formatter per la data (creato una volta sola per efficienza)
+        // Formatter per la data
         private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
 
         ViewHolder(ItemVaultFileBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
 
-            // Gestione Click nel costruttore (Best Practice)
+            // Gestione Click nel costruttore
             itemView.setOnClickListener(v -> {
                 int pos = getAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION) {
@@ -81,7 +81,7 @@ public class VaultAdapter extends ListAdapter<VaultFile, VaultAdapter.ViewHolder
                 typeText = file.mimeType.toUpperCase();
             }
 
-            // Setta "Data • TIPO" (Rimossa la dimensione che non esiste nell'Entity)
+            // Setta "Data - TIPO" (Rimossa la dimensione che non esiste nell'Entity)
             binding.tvFileDetails.setText(context.getString(R.string.vault_file_details_format, dateText, typeText));
         }
     }
@@ -89,7 +89,7 @@ public class VaultAdapter extends ListAdapter<VaultFile, VaultAdapter.ViewHolder
     static class DiffCallback extends DiffUtil.ItemCallback<VaultFile> {
         @Override
         public boolean areItemsTheSame(@NonNull VaultFile oldItem, @NonNull VaultFile newItem) {
-            // CRUCIALE: id è String, quindi si usa .equals(), non ==
+            // id è String, quindi si usa .equals(), non ==
             return oldItem.id.equals(newItem.id);
         }
 

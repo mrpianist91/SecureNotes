@@ -27,9 +27,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
-        /*L'abilitazione del ViewBinding è una scelta moderna e sicura per interagire con le view
-         definite in XML. Elimina la necessità di findViewById, prevenendo NullPointerException
-         e garantendo la type safety in fase di compilazione.*/
+        /*L'abilitazione del ViewBinding elimina la necessità di findViewById, più moderna ed efficiente*/
         viewBinding = true // Abilita ViewBinding per semplificare l'accesso alle view
     }
 }

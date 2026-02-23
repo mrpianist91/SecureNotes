@@ -47,8 +47,8 @@ public class SessionObserver implements DefaultLifecycleObserver {
 
     private static final String TAG = "SessionObserver";
 
-    /* ───────────────────────── Configurazione ───────────────────────── */
-    private static long sessionTimeoutMs;          // Durata timeout inattività (es. 3 min)
+    //Configurazione
+    private static long sessionTimeoutMs;          // tempo timeout inattività (default 3 min)
     private static final Handler timeoutHandler = new Handler(Looper.getMainLooper());
 
     // Runnable eseguito se l'utente non tocca lo schermo per X minuti
@@ -57,7 +57,8 @@ public class SessionObserver implements DefaultLifecycleObserver {
         invalidateSession();
     };
 
-    /*Stato Globale*/
+    //Stato Globale
+
     // Indica se l'utente è attualmente autenticato e la sessione è valida
     private static boolean isSessionValid = false;
 
@@ -72,7 +73,6 @@ public class SessionObserver implements DefaultLifecycleObserver {
         sessionTimeoutMs = timeoutMs;
     }
 
-    /*API Pubbliche*/
 
     /**
      * Da chiamare SOLO dopo un Login (PIN o Biometrico) avvenuto con successo.
@@ -117,11 +117,11 @@ public class SessionObserver implements DefaultLifecycleObserver {
      * Impedisce che la sessione venga invalidata quando l'app va in background.
      */
     public static void setIgnoreNextPause() {
-        Log.d(TAG, "Il prossimo onStop sarà ignorato (External Action).");
+        Log.d(TAG, "Il prossimo onStop sarà ignorato.");
         ignoreNextPause = true;
     }
 
-    /*Gestione Ciclo di Vita */
+    /*Gestione Lifecycle */
 
     /**
      * onStart: Scatta quando l'app entra in FOREGROUND (l'utente apre l'app).
@@ -130,8 +130,8 @@ public class SessionObserver implements DefaultLifecycleObserver {
     public void onStart(@NonNull LifecycleOwner owner) {
         Log.d(TAG, "App in Foreground (onStart). Stato sessione: " + isSessionValid);
 
-        // SE la sessione non è valida (es. invalidata in onStop o mai avviata)
-        // ALLORA forza il ritorno alla schermata di Login.
+        // se la sessione non è valida (es. invalidata in onStop o mai avviata)
+        // allora forza il ritorno alla schermata di Login.
         if (!isSessionValid) {
             navigateToAuth();
         } else {
@@ -173,7 +173,7 @@ public class SessionObserver implements DefaultLifecycleObserver {
     private static void navigateToAuth() {
         if (navController != null) {
             try {
-                // Controllo difensivo per evitare loop se siamo già nel grafo di Auth
+                // Controllo per evitare loop se siamo già nel grafo di Auth
                 int currentDestId = (navController.getCurrentDestination() != null)
                         ? navController.getCurrentDestination().getId()
                         : -1;

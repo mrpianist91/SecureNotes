@@ -80,7 +80,7 @@ public class LoginFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
         Log.d("LoginFragment", "VM id=" + System.identityHashCode(authViewModel));
-        // Se esiste già un lock persistito (da tentativi precedenti), riflettilo subito in UI
+        // Se esiste già un lock (da tentativi precedenti), riflettiamolo subito in UI
         startLockCountdown(authViewModel.getLockRemainingMillis());
         // Controllo di sicurezza: blocca l'accesso se il dispositivo è rootato.
         // Usiamo solo i check ad alta affidabilità per evitare falsi positivi
@@ -153,12 +153,12 @@ public class LoginFragment extends Fragment {
             } else if (result == AuthViewModel.LoginResult.INCORRECT_PIN) {
                 // PIN errato
                 Toast.makeText(requireContext(), "PIN errato", Toast.LENGTH_SHORT).show();
-                // (Opzionale) Si potrebbe indicare il numero di tentativi rimanenti
+
             }
         });
 
         // Gating iniziale: prova lo sblocco BIOMETRICO solo se:
-        // 1) l'hardware è disponibile e 2) ESISTE una busta DB biometrica salvata.
+        // 1) l'hardware è disponibile e 2) ESISTE l'envelop biometrico del DB salvato.
         BiometricManager biometricManager = BiometricManager.from(requireContext());
         boolean bioAvailable = (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 == BiometricManager.BIOMETRIC_SUCCESS);
@@ -166,11 +166,11 @@ public class LoginFragment extends Fragment {
         boolean isEnabledInSettings = AuthManager.getInstance(requireContext()).isBiometricEnabled();
         boolean hasBioWrap = SecurityUtils.hasBioWrap(requireContext());
         if (bioAvailable && isEnabledInSettings && hasBioWrap) {
-            showBiometricPromptForDbUnlock();          // prompt con decrypt della busta BIO
+            showBiometricPromptForDbUnlock();          // prompt con decrypt dell'envelop biometrico
             binding.pinGroup.setVisibility(View.GONE); // nasconde PIN finché non serve
             binding.btnUsePin.setVisibility(View.VISIBLE);
         } else {
-            // Nessuna busta BIO o hardware non disponibile → vai di PIN
+            // Nessun envelop bio o hardware non disponibile → vai di PIN
            showPinLoginUI();
 
         }
@@ -198,12 +198,12 @@ public class LoginFragment extends Fragment {
 
 
     /**
-     * Mostra il BiometricPrompt per lo sblocco della BUSTA DB BIOMETRICA. Su successo emette l'evento di nav via VM.
+     * Mostra il BiometricPrompt per lo sblocco dell'envelop biometrico del DB. Su successo emette l'evento di nav via VM.
      * Se l'utente annulla o c'è un errore → fallback immediato al PIN.
      */
     private void showBiometricPromptForDbUnlock() {
         try {
-            // Carica (IV, CT) della busta biometrica salvata
+            // Carica (IV, CT) dell'envelop biometrico salvata
             Pair<byte[], byte[]> wrap = SecurityUtils.loadWrappedDbWithBiometrics(requireContext());
             if (wrap == null || wrap.first == null || wrap.second == null) {
                 showPinLoginUI();

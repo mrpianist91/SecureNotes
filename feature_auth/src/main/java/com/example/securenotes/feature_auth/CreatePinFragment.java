@@ -311,13 +311,13 @@ public class CreatePinFragment extends Fragment {
                                 Log.e("CreatePin", "BIO wrap error", e);
                                 Toast.makeText(requireContext(), "Errore cifratura biometrica", Toast.LENGTH_SHORT).show();
                             } finally {
-                                // 4f) In TUTTI i casi: azzera la passphrase in RAM (difesa opportuna).
+                                // In TUTTI i casi: azzera la passphrase in RAM (difesa opportuna).
                                 Arrays.fill(passphrase, (byte)0);
                             }
                         }
                         // 5) L'utente ha annullato/chiuso il prompt o c'è stato un errore "di canale".
                         @Override public void onAuthenticationError(int code, @NonNull CharSequence err) {
-                            // Utente ha annullato / errore HW: resti PIN-only e prosegui comunque
+                            // Utente ha annullato / errore HW: si resta solo col PIN e prosegui comunque
                             Arrays.fill(passphrase, (byte)0);
                             navigateToLoginClearingAuthGraph();
                         }
@@ -338,7 +338,7 @@ public class CreatePinFragment extends Fragment {
             Log.e("CreatePin", "Biometric crypto error", e);
             Arrays.fill(passphrase, (byte)0);
             Toast.makeText(requireContext(), "Biometria non disponibile", Toast.LENGTH_SHORT).show();
-            // Se fallisce l'inizializzazione del Cipher, procediamo comunque col PIN (che abbiamo già salvato)
+            // Se fallisce l'inizializzazione del Cipher, procediamo comunque col PIN (che è già salvato)
             navigateToLoginClearingAuthGraph();
         }
     }

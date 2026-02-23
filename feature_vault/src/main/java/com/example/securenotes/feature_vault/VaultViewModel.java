@@ -14,9 +14,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
     private final VaultRepository repository;
     public final LiveData<List<VaultFile>> files; //Lista (pubblica) dei files in archivio, aggiornata automaticamente da Room.
 
-    // STATO DEL GATEKEEPER
-    // Manteniamo lo stato qui perché il ViewModel sopravvive alla rotazione,
-    // mentre il Fragment no.
+    // STATO DEL GATEKEEPER (blocco autenticazione)
     private boolean isUnlocked = false;
 
     // STATO DEL "CARICAMENTO" DI UN FILE (DA AGGIUNGERE ALLA LISTA DEI FILES ARCHIVIATI)
@@ -96,7 +94,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
     // Chiedi al Repo di decifrare il file nella cache temporanea (per poterlo visualizzare)
     // Questo metodo è passato come callback dal VaultFragment nel setup dell'onItemClick() del RecyclerView/VaultAdapter
     public void requestOpenFile(VaultFile file) {
-        // 1. UI Feedback: tramite _isLoading mostriamo la ProgressBar (la decifratura può impiegare secondi)
+        // 1. feedback per l'utente: tramite _isLoading mostriamo la ProgressBar (la decifratura può impiegare secondi)
         _isLoading.setValue(true);
         repository.decryptFileForViewing(getApplication(), file, new VaultRepository.OnFileDecryptedListener() {
             @Override
@@ -125,7 +123,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
 
     @Override
     protected void onCleared() {
-        // SECURITY: Pulizia aggressiva della cache quando si esce dal Vault.
+        // SECURITY: Pulizia della cache quando si esce dal Vault.
         // Se l'utente preme "Indietro" o l'app viene chiusa, questo metodo parte.
         //onCleared() viene chiamato dal sistema Android quando il ViewModel sta per morire definitivamente.
         super.onCleared();

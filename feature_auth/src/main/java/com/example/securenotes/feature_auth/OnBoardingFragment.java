@@ -148,7 +148,7 @@ public class OnBoardingFragment extends Fragment {
                         .setText(args.getString("title", ""));
                 ((android.widget.TextView) view.findViewById(R.id.tv_onboarding_desc))
                         .setText(args.getString("desc", ""));
-                // (Impostare eventualmente l'immagine if necessario)
+
             }
         }
     }

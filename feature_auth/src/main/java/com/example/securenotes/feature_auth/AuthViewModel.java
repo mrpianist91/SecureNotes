@@ -45,7 +45,7 @@ public class AuthViewModel extends AndroidViewModel {
     private static final String KEY_PIN_SALT = SecurityUtils.KEY_PIN_SALT;
     private static final String KEY_PIN_HASH = SecurityUtils.KEY_PIN_HASH;
 
-    //Variabile volatile per tenere il vecchio PIN in memoria durante la transizione
+    //Variabile temporanea per tenere il vecchio PIN in memoria durante la transizione
     // tra SettingsFragment e CreatePinFragment. Verrà azzerata subito dopo l'uso.
     private String tempOldPinForChange = null;
 

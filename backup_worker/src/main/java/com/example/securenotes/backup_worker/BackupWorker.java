@@ -247,7 +247,7 @@ Poiché lo ZipOutputStream è dentro il CipherOutputStream, tutto ciò che rigua
                 .setSmallIcon(R.drawable.ic_save_24)//icona da mostrare nella notifica (requisito imprescindibile affinchè appaia la notifica)
                 .setOngoing(true)//rende la notifica non eliminabile con lo swipe
                 .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)//dice al sistema di mostrare subito la notifica (di norma si deve attendere qualche secondo).
-                .build();//valido da Android 12+.
+                .build();
 
         // Distinguiamo il tipo di servizio tra le varie API
         if (Build.VERSION.SDK_INT >= 29) {

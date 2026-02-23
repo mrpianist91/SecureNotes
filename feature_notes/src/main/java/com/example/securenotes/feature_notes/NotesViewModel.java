@@ -26,13 +26,12 @@ public class NotesViewModel extends ViewModel {
     /* LiveData<T>: stream osservabile, che conosce il ciclo di vita; espone solo observe(...). È read-only per chi lo riceve (UI).
      * MutableLiveData<T>: sottotipo che consente anche setValue/postValue, quindi scrivibile dall'owner (es. ViewModel).
      * MediatorLiveData<T>: un LiveData che può ascoltare più LiveData sorgenti (Pair<String, String>) e riemettere un valore proprio, quando una qualsiasi delle sorgenti cambia. In pratica, è un “combine” per LiveData.
-     * Perché MediatorLiveData qui?
-     * Perché i parametri di filtro sono due e indipendenti (tag e query). Usando MediatorLiveData, il ViewModel accoppia i valori correnti e li emette come singolo stato coerente, su cui poi si fa lo switchMap verso la query del repository.
+     * i parametri di filtro sono due e indipendenti (tag e query). Usando MediatorLiveData, il ViewModel accoppia i valori correnti e li emette come singolo stato coerente, su cui poi si fa lo switchMap verso la query del repository.
      */
     private final MediatorLiveData<Pair<String, String>> filterParams = new MediatorLiveData<>();
     // LiveData note filtrate risultante
     public final LiveData<List<Note>> notes;
-    // (Opzionale) nota attualmente selezionata per editing (usata se si condivide VM tra fragment)
+    // nota attualmente selezionata per editing
     private Note currentNote;
 
     public NotesViewModel(NoteRepository repository) {
@@ -113,7 +112,7 @@ public class NotesViewModel extends ViewModel {
         try {
             repository.close(); // Chiude executor thread
         } catch (IOException e) {
-// Log dell'exception durante la chiusura (best effort)
+// Log dell'exception durante la chiusura
             e.printStackTrace();
         }
     }
