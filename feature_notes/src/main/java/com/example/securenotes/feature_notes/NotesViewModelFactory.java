@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import com.example.securenotes.core.NoteRepository;
 public class NotesViewModelFactory implements ViewModelProvider.Factory {
-    //NoteRepository è la dipendenza che si vuole injectare nei ViewModel creati da questa factory.
+    //NoteRepository è la dipendenza di cui fare injection nei ViewModel creati da questa factory.
     private final NoteRepository repository;
 
     public NotesViewModelFactory(NoteRepository repository) {

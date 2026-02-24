@@ -8,6 +8,9 @@
     android:fitsSystemWindows="true"
     tools:context=".MainActivity">
 
+    <!--android:fitsSystemWindows="true" aggiunge del padding interno ai layout interessati in modo che non siano coperti dalla statusbar
+    o dalla Bottom Nav View-->
+
     <!-- App Bar host per i menu dei Fragment -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"

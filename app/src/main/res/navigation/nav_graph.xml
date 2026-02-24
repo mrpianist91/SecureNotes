@@ -8,6 +8,17 @@
     <!-- Include il grafo di navigazione del modulo di autenticazione -->
     <include app:graph="@navigation/auth_nav" />
 
+    <!--includiamo il CreatePinFragment direttamente nel, sotto nome fittizio "changePinFragment" per poterlo raggiungere direttamente dalle Impostazioni (Cambio Pin)-->
+    <fragment
+        android:id="@+id/changePinFragment"
+        android:name="com.example.securenotes.feature_auth.CreatePinFragment"
+        android:label="Cambia PIN"
+        tools:layout="@layout/fragment_create_pin">
+        <argument
+            android:name="isChangeMode"
+            app:argType="boolean"
+            android:defaultValue="true" />
+    </fragment>
     <!-- Schermata Lista Note (destinazione principale post-login) -->
     <fragment
         android:id="@+id/notesListFragment"
@@ -47,8 +58,19 @@
         tools:layout="@layout/fragment_vault" />
     <fragment
         android:id="@+id/settingsFragment"
-        android:name="com.example.securenotes.settingsFragment"
+        android:name="com.example.securenotes.SettingsFragment"
         android:label="Settings"
-        tools:layout="@layout/fragment_settings" />
+        tools:layout="@layout/fragment_settings" >
+        <action
+            android:id="@+id/action_settingsFragment_to_createPinFragment"
+            app:destination="@id/changePinFragment">
+
+            <argument
+                android:name="isChangeMode"
+                app:argType="boolean"
+                android:defaultValue="false" />
+
+        </action>
+    </fragment>
 
 </navigation>

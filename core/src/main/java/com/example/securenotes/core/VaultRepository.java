@@ -8,7 +8,7 @@ import java.util.List;
 public interface VaultRepository {
     LiveData<List<VaultFile>> getAllFiles();
 
-    // FIX: Aggiunta callback per gestire fine caricamento
+    // Callback per gestire fine caricamento
     void addFileFromUri(Context context, Uri sourceUri, CompletionListener listener);
 
     void deleteFile(VaultFile file);

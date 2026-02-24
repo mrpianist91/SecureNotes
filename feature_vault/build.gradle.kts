@@ -52,7 +52,6 @@ dependencies {
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.navigation.ui)
 
-    // SECURITY - CRITICO PER QUESTO MODULO
     // Gestione file cifrati (EncryptedFile)
     implementation(libs.androidx.security.crypto)
     // Autenticazione biometrica (BiometricPrompt) per il Gatekeeper

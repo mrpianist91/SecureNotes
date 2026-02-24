@@ -3,7 +3,6 @@ package com.example.securenotes.feature_vault;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,7 +24,8 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.securenotes.core.PinManager;
+import com.example.securenotes.core.AuthManager;
+import com.example.securenotes.core.SystemInteractionListener;
 import com.example.securenotes.core.VaultFile;
 import com.example.securenotes.core.VaultRepository;
 import com.example.securenotes.feature_vault.databinding.FragmentVaultBinding;
@@ -39,16 +39,36 @@ public class VaultFragment extends Fragment {
     private VaultViewModel viewModel;
     private VaultAdapter adapter;
 
-    // Stato del Gatekeeper: default FALSE (bloccato)...passato al VaultViewModel per bug su rotazione schermo!
-    //private boolean isUnlocked = false;
+    // Listener per comunicare con l'Activity (Sessione)
+    //private VaultInteractionListener interactionListener;
+
+    // Listener per comunicare con l'Activity (Sessione)
+    private SystemInteractionListener interactionListener;
+    // Gestione Attach/Detach del Listener
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        if (context instanceof SystemInteractionListener) {
+            interactionListener = (SystemInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString() + " deve implementare VaultInteractionListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        interactionListener = null;
+    }
 
     // Launcher importazione file
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                    viewModel.importFile(result.getData().getData());
+                    viewModel.importFile(result.getData().getData());//URI del file scelto dall'utente
                 }
+                //Al ritorno, onStart() del SessionObserver troverà la sessione ancora valida (perché non invalidata in onStop) e riprenderà il timer.
             }
     );
 
@@ -73,33 +93,33 @@ public class VaultFragment extends Fragment {
         setupGatekeeper();
     }
 
-    // --- GATEKEEPER & AUTH UI LOGIC ---
+    //GATEKEEPER & AUTH UI LOGIC
 
     private void setupGatekeeper() {
         if (!viewModel.isUnlocked()) {//!isUnlocked
             lockUiState(); // Stato iniziale: Tutto nascosto tranne Biometria/Bottone PIN
-            // Avvio automatico del prompt biometrico per UX fluida
+            // Avvio automatico del prompt biometrico
             launchBiometricAuth();
-        } else {//questo ramo sussiste nel caso l'utente, dopo aver già sbloccato il vault passasse ad un altro tab (note/settings) e poi tornasse al vault.
+        } else {//questo ramo sussiste nel caso l'utente, dopo aver già sbloccato il vault passasse ad un altro tab (note/settings) e poi tornasse al vault. OPPURE dopo rotazione schermo
 
             unlockUiState();
         }
     }
 
-    /** Configura i listener per la nuova UI unificata (simile a LoginFragment) */
+    //Configura i listener per la nuova UI unificata (simile a LoginFragment)
     private void setupAuthUiInteractions() {
-        // 1. Observer risultato PIN (dal ViewModel che usa PinManager)
+        // 1. Observer risultato PIN (dal ViewModel che usa AuthManager)
         viewModel.pinResult.observe(getViewLifecycleOwner(), result -> {
             if (result == null) return;
 
-            if (result == PinManager.PinResult.SUCCESS) {
+            if (result == AuthManager.AuthResult.SUCCESS) {
                 //isUnlocked = true;
                 // SALVIAMO LO STATO NEL VIEWMODEL
                 viewModel.setUnlocked(true);
                 hideKeyboard();
                 unlockUiState();
                 binding.etPin.setText(""); // Pulisci per sicurezza
-            } else if (result == PinManager.PinResult.LOCKED) {
+            } else if (result == AuthManager.AuthResult.LOCKED) {
                 binding.tvStatus.setText("Troppi tentativi. Riprova più tardi.");
                 binding.etPin.setError("Bloccato");
             } else {
@@ -186,9 +206,9 @@ public class VaultFragment extends Fragment {
         }
     }
 
-    // --- UI STATES (Coerenza Visiva) ---
+    //STATO UI
 
-    /** Stato 1: Vault Bloccato, Biometria in corso o opzione "Usa PIN" visibile */
+    //Stato 1: Vault Bloccato, Biometria in corso o opzione "Usa PIN" visibile
     private void lockUiState() {
         binding.contentLayer.setVisibility(View.GONE);
         binding.authLayer.setVisibility(View.VISIBLE);
@@ -201,7 +221,7 @@ public class VaultFragment extends Fragment {
         binding.etPin.setError(null);
     }
 
-    /** Stato 2: Utente ha scelto "Usa PIN" o Bio non disponibile -> Mostra InputText e tastiera */
+    //Stato 2: Utente ha scelto "Usa PIN" o Bio non disponibile -> Mostra InputText e tastiera
     private void showPinInputState() {
         binding.contentLayer.setVisibility(View.GONE);
         binding.authLayer.setVisibility(View.VISIBLE);
@@ -216,12 +236,14 @@ public class VaultFragment extends Fragment {
         if (imm != null) imm.showSoftInput(binding.etPin, InputMethodManager.SHOW_IMPLICIT);
     }
 
-    /** Stato 3: Sbloccato -> Mostra File */
+    //Stato 3: Sbloccato -> Mostra File
     private void unlockUiState() {
         binding.authLayer.setVisibility(View.GONE);
         binding.contentLayer.setVisibility(View.VISIBLE);
     }
-
+//Viene chiamato in due casi:
+// 1) dopo l'autenticazione per accedere al Vault...non serve più la tastiera
+// 2) nel caso si prema il bottone "Annulla" prima del popBackstack che ci riporta alle note o ai settings
     private void hideKeyboard() {
         View view = getView();
         if (view != null) {
@@ -230,7 +252,6 @@ public class VaultFragment extends Fragment {
         }
     }
 
-    // ------------------------
 
     private void setupAdapter() {
         // Impostiamo l'adapter per gestire l'interazione dell'utente coi file nel RecyclerView
@@ -238,7 +259,7 @@ public class VaultFragment extends Fragment {
         adapter = new VaultAdapter(file -> viewModel.requestOpenFile(file));
         binding.rvVaultFiles.setAdapter(adapter);
 
-        // Swipe to Delete
+        // Swipe per Delete
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
             @Override
             public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh, @NonNull RecyclerView.ViewHolder target) { return false; }
@@ -253,9 +274,13 @@ public class VaultFragment extends Fragment {
 
         // FAB Import
         binding.fabAddFile.setOnClickListener(v -> {
+            // AVVISA IL SESSION OBSERVER DI NON BLOCCARE L'APP DURANTE LA SCHERMATA DI IMPORTAZIONE
+            if (interactionListener != null) {
+                interactionListener.onSystemInteraction();
+            }
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("*/*");
+            intent.setType("*/*");//dice al file picker quali tipi di file mostrare all'utente. Con "*/*" diciamo di mostrare tutto.
             filePickerLauncher.launch(intent);
         });
     }
@@ -268,6 +293,10 @@ public class VaultFragment extends Fragment {
 
         viewModel.viewFileEvent.observe(getViewLifecycleOwner(), uri -> {
             if (uri != null) {
+                // ANCHE QUI serve avvisare il Session observer, perché ACTION_VIEW apre un'app esterna
+                if (interactionListener != null) {
+                    interactionListener.onSystemInteraction();
+                }
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setDataAndType(uri, requireContext().getContentResolver().getType(uri));
                 intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -284,6 +313,7 @@ public class VaultFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        //ripuliamo la cartella nella cache temporanea cui abbiamo dato accesso ad un'app esterna
         VaultRepository.clearTempCache(requireContext());
         binding = null;
     }

@@ -35,15 +35,18 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            // Aggiungi shrinkResources come da specifiche
+            isMinifyEnabled = true //abilita shrinking + obfuscation + optimization tramite R8
+            // Aggiungi shrinkResources come da specifiche per rimuovere anche le "res" inutilizzate
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Collega la configurazione di firma
-            signingConfig = signingConfigs.getByName("release")
+            // In CI usa il keystore di produzione; in locale fallback al debug signing
+            signingConfig = if (System.getenv("KEYSTORE_FILE") != null)
+                signingConfigs.getByName("release")
+            else
+                signingConfigs.getByName("debug")
         }
     }
 
@@ -73,6 +76,7 @@ dependencies {
     implementation(libs.androidx.navigation.ui)
     implementation(libs.work.runtime)
     implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.biometric)
     //implementation(libs.activity)
     //implementation(libs.constraintlayout)
 
@@ -86,8 +90,8 @@ dependencies {
     //implementation("androidx.security:security-crypto:1.0.0")
 
     //Test
-    /*
     testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)*/
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }

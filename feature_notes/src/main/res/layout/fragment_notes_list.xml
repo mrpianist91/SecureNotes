@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     tools:context=".notesListFragment">
 
-    <!-- Empty state dichiarato in XML (coerente con lo stile del modulo) -->
+    <!-- Empty state dichiarato in XML -->
     <TextView
         android:id="@+id/tvEmptyState"
         android:layout_width="0dp"

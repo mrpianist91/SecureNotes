@@ -3,6 +3,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.Spannable;
 import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,8 +41,8 @@ public class NoteEditFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // Transizioni Material Shared Axis per entrata/uscita
-        setEnterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, /* forward= */ true));
-        setReturnTransition(new MaterialSharedAxis(MaterialSharedAxis.X, /* forward= */ false));
+        setEnterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, true));
+        setReturnTransition(new MaterialSharedAxis(MaterialSharedAxis.X,  false));
     }
 
     @Override
@@ -59,7 +60,7 @@ public class NoteEditFragment extends Fragment {
         NoteDao dao = AppDatabase.getInstance().noteDao();
         NoteRepository repo = new NoteRepositoryImpl(dao);
         viewModel = new ViewModelProvider(requireActivity(), new NotesViewModelFactory(repo)).get(NotesViewModel.class);
-        // Recupera l'ID della nota passato tramite Safe Args (se presente)
+        // Recupera l'ID della nota passato tramite arguments (se esiste)
         String noteId = getArguments() != null ? getArguments().getString("noteId") : null;
         if (noteId != null) {
         // Modalità "modifica" nota esistente
@@ -67,7 +68,7 @@ public class NoteEditFragment extends Fragment {
             Note noteFromVM = viewModel.findNoteById(noteId);
             editingNote = (noteFromVM != null) ? noteFromVM : viewModel.getCurrentNote();
             if (editingNote == null) {
-                 // Se non trovata in VM, carica in modo sincrono dal DB (evitare se possibile)
+                 // Se non trovata in VM, carica in modo sincrono dal DB
                 editingNote = dao.getNoteById(noteId);
             }
             if (editingNote == null) {
@@ -79,10 +80,7 @@ public class NoteEditFragment extends Fragment {
         } else {
             // Modalità "creazione" nuova nota
             editingNote = new Note();
-            /*UUID è la classe java.util.UUID, che modella un Universally Unique Identifier a 128 bit.
-              randomUUID() crea un UUID di versione 4 (detto “random”),
-               cioè un valore generato casualmente con un PRNG crittograficamente forte (SecureRandom)*/
-            editingNote.id = UUID.randomUUID().toString();
+            editingNote.id = UUID.randomUUID().toString();//generiamo un id casuale con SecureRandom (.randomUUID())
             editingNote.title = "";
             editingNote.body = "";
             editingNote.tag = Note.TAG_FACCENDE; // Default prima categoria (ad es. "Faccende")
@@ -103,7 +101,7 @@ public class NoteEditFragment extends Fragment {
           Guarda ExposedDropdownMenu.docx in cartella!*/
         binding.dropdownTag.setAdapter(adapter);
         // Se la nota ha un tag specifico, seleziona la voce (del dropdown menù) corrispondente
-        /*Se stai modificando una nota che ha già un tag (editingNote.tag non è null):
+        /*Se si modifica una nota che ha già un tag (editingNote.tag non è null):
           Converte l’array tagOptions in una List temporanea per usare indexOf(...) e trovare l’indice del tag assegnato.
           Se l’indice è valido (>= 0), imposta il testo del dropdown al tag corrispondente.
           Il secondo parametro “false” evita che l’impostazione del testo inneschi automaticamente il filtro (di ricerca) dell’AutoCompleteTextView o apra il menu:
@@ -126,12 +124,33 @@ public class NoteEditFragment extends Fragment {
 
         // Listener per pulsante Bold: applica <b> al testo selezionato
         binding.btnBold.setOnClickListener(v -> {
-            int start = binding.editBody.getSelectionStart();
-            int end = binding.editBody.getSelectionEnd();
+            int start = Math.min(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
+            int end   = Math.max(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
             if (start < end) {
                 Editable text = binding.editBody.getText();
-                // Applica uno span di stile grassetto al testo selezionato
                 text.setSpan(new StyleSpan(android.graphics.Typeface.BOLD),
+                        start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        });
+
+        // Listener per pulsante Italic: applica <i> al testo selezionato
+        binding.btnItalic.setOnClickListener(v -> {
+            int start = Math.min(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
+            int end   = Math.max(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
+            if (start < end) {
+                Editable text = binding.editBody.getText();
+                text.setSpan(new StyleSpan(android.graphics.Typeface.ITALIC),
+                        start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        });
+
+        // Listener per pulsante Underline: applica <u> al testo selezionato
+        binding.btnUnderline.setOnClickListener(v -> {
+            int start = Math.min(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
+            int end   = Math.max(binding.editBody.getSelectionStart(), binding.editBody.getSelectionEnd());
+            if (start < end) {
+                Editable text = binding.editBody.getText();
+                text.setSpan(new UnderlineSpan(),
                         start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         });
@@ -144,7 +163,7 @@ public class NoteEditFragment extends Fragment {
                         saveAndExit();
                     }
                 });
-        // 2. FIX CRITICO: Intercetta la freccia "Up" nella Toolbar (App Bar)
+        // 2.Intercetta la freccia "Up" nella Toolbar (App Bar)
         // Recuperiamo la Toolbar dall'Activity.
         // Cerchiamo la risorsa chiamata "toolbar" di tipo "id" nel package dell'applicazione ospitante.
         int toolbarId = getResources().getIdentifier("toolbar", "id", requireContext().getPackageName());
@@ -152,7 +171,7 @@ public class NoteEditFragment extends Fragment {
             MaterialToolbar toolbar = requireActivity().findViewById(toolbarId);
             if (toolbar != null) {
                 toolbar.setNavigationOnClickListener(v -> {
-                    // Simuliamo la pressione del tasto Back.
+                    // Simula la pressione del tasto Back.
                     // Questo attiverà il callback definito al punto 1, eseguendo saveAndExit().
                     requireActivity().getOnBackPressedDispatcher().onBackPressed();
                 });

@@ -32,6 +32,10 @@ dependencies {
 
     implementation(project(":core"))
     implementation(libs.work.runtime)
+    // Per EncryptedFile e MasterKey
+    implementation(libs.androidx.security.crypto)
+    // Per serializzare/deserializzare i metadati JSON
+    implementation(libs.gson)
     /*
     implementation(libs.appcompat)
     implementation(libs.material)

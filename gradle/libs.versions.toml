@@ -3,6 +3,9 @@
 agp = "8.11.2"
 kotlin = "1.9.22"
 
+# Aggiungi questa riga per definire la versione di Gson
+gson = "2.10.1"
+
 # Jetpack Core & UI
 core = "1.13.1"
 appcompat = "1.7.1"
@@ -73,6 +76,9 @@ sqlcipher-android = { group = "net.zetetic", name = "android-database-sqlcipher"
 androidx-sqlite = {group = "androidx.sqlite", name = "sqlite", version.ref = "androidxSqlite"}
 rootbeer = { group = "com.scottyab", name = "rootbeer-lib", version.ref = "rootbeer" }
 
+# Utility
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+
 # Test
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
@@ -87,3 +93,4 @@ navigation-fragment = { group = "androidx.navigation", name = "navigation-fragme
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+androidx-navigation-safeargs = { id = "androidx.navigation.safeargs", version.ref = "navigation" }

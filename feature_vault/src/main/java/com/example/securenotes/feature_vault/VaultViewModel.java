@@ -14,9 +14,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
     private final VaultRepository repository;
     public final LiveData<List<VaultFile>> files; //Lista (pubblica) dei files in archivio, aggiornata automaticamente da Room.
 
-    // STATO DEL GATEKEEPER
-    // Manteniamo lo stato qui perché il ViewModel sopravvive alla rotazione,
-    // mentre il Fragment no.
+    // STATO DEL GATEKEEPER (blocco autenticazione)
     private boolean isUnlocked = false;
 
     // STATO DEL "CARICAMENTO" DI UN FILE (DA AGGIUNGERE ALLA LISTA DEI FILES ARCHIVIATI)
@@ -31,10 +29,11 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
     public LiveData<Uri> viewFileEvent = _viewFileEvent;
 
     // Gestore PIN condiviso da :core
-    private final PinManager pinManager;
+    //private final PinManager pinManager;
+    private final AuthManager authManager;
     // LiveData per comunicare il risultato del PIN alla UI
-    private final MutableLiveData<PinManager.PinResult> _pinResult = new MutableLiveData<>();
-    public LiveData<PinManager.PinResult> pinResult = _pinResult;
+    private final MutableLiveData<AuthManager.AuthResult> _pinResult = new MutableLiveData<>();
+    public LiveData<AuthManager.AuthResult> pinResult = _pinResult;
 
     public VaultViewModel(@NonNull Application application) {
         super(application);
@@ -44,8 +43,8 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
         repository = new VaultRepositoryImpl(dao);
         // 3. Colleghiamo la lista file direttamente a Room
         files = repository.getAllFiles();// appena cambia qualcosa nel DB, questa lista si aggiorna automaticamente e la UI riceve la notifica.
-        // Inizializza il PinManager
-        this.pinManager = new PinManager(application);
+        // Inizializza l'AuthManager
+        this.authManager = AuthManager.getInstance(application);
     }
 
     public boolean isUnlocked() {
@@ -56,11 +55,11 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
         this.isUnlocked = unlocked;
     }
 
-    // NUOVO METODO: Verifica PIN
+    // Verifica PIN
     public void verifyPin(String pin) {
         // Eseguiamo in un thread background se il calcolo hash è pesante (in PinManager)
         new Thread(() -> {
-            PinManager.PinResult result = pinManager.verifyPin(pin);
+            AuthManager.AuthResult result = authManager.verifyPin(pin);
             // Post sul main thread
             _pinResult.postValue(result);
         }).start();
@@ -75,7 +74,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
     public void importFile(Uri uri) {
         // 1. "stiamo caricando un file" -> mostra la ProgressBar
         _isLoading.setValue(true);
-        // FIX: Usa la callback per resettare isLoading SOLO quando il lavoro è finito
+        //Usa la callback per resettare isLoading SOLO quando il lavoro è finito
         repository.addFileFromUri(getApplication(), uri, new VaultRepository.CompletionListener() {
             @Override
             public void onComplete() {
@@ -95,7 +94,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
     // Chiedi al Repo di decifrare il file nella cache temporanea (per poterlo visualizzare)
     // Questo metodo è passato come callback dal VaultFragment nel setup dell'onItemClick() del RecyclerView/VaultAdapter
     public void requestOpenFile(VaultFile file) {
-        // 1. UI Feedback: tramite _isLoading mostriamo la ProgressBar (la decifratura può impiegare secondi)
+        // 1. feedback per l'utente: tramite _isLoading mostriamo la ProgressBar (la decifratura può impiegare secondi)
         _isLoading.setValue(true);
         repository.decryptFileForViewing(getApplication(), file, new VaultRepository.OnFileDecryptedListener() {
             @Override
@@ -124,7 +123,7 @@ public class VaultViewModel extends AndroidViewModel {//NB A differenza di un no
 
     @Override
     protected void onCleared() {
-        // SECURITY: Pulizia aggressiva della cache quando si esce dal Vault.
+        // SECURITY: Pulizia della cache quando si esce dal Vault.
         // Se l'utente preme "Indietro" o l'app viene chiusa, questo metodo parte.
         //onCleared() viene chiamato dal sistema Android quando il ViewModel sta per morire definitivamente.
         super.onCleared();

@@ -26,103 +26,180 @@ import android.app.Application;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.navigation.NavController;
 import com.example.securenotes.feature_auth.R;
+import com.example.securenotes.feature_vault.VaultFragment;
 
 import androidx.navigation.NavOptions;
 
-public class SessionObserver implements Application.ActivityLifecycleCallbacks, DefaultLifecycleObserver {
-    // durata timeout per "inattività" in millisecondi
-    /* ───────────────────────── configurabili ───────────────────────── */
-    private static long     sessionTimeoutMs;          // es. 180 000 (3 min)
-    private static boolean      inForeground;      // # Activity in onStart()
-    private static Handler  timeoutHandler;                   // handler sul main-thread
-    private static Runnable timeoutRunnable;              // naviga all’auth_graph
+/**
+ * SessionObserver: Gestore del ciclo di vita della sessione di sicurezza.
+ * Implementa DefaultLifecycleObserver (onStart, onStop, onPause ecc)
+ * Questo permette a ProcessLifecycleOwner di invocare correttamente onStart (Foreground)
+ * e onStop (Background).
+ */
+public class SessionObserver implements DefaultLifecycleObserver {
 
-    /* ───────────────────────── stato globale ───────────────────────── */
-    private static boolean  sessionRunning    = false; // true dopo startSession
-    private static boolean  sessionInvalidated    = false; // scatta dopo timeout
-    private static NavController navController;        // fornito dal costruttore
+    private static final String TAG = "SessionObserver";
+
+    //Configurazione
+    private static long sessionTimeoutMs;          // tempo timeout inattività (default 3 min)
+    private static final Handler timeoutHandler = new Handler(Looper.getMainLooper());
+
+    // Runnable eseguito se l'utente non tocca lo schermo per X minuti
+    private static final Runnable timeoutRunnable = () -> {
+        Log.d(TAG, "Timeout inattività scaduto: sessione invalidata.");
+        invalidateSession();
+    };
+
+    //Stato Globale
+
+    // Indica se l'utente è attualmente autenticato e la sessione è valida
+    private static boolean isSessionValid = false;
+
+    //fornito dal costruttore, serve a navigare verso il LoginFragment
+    private static NavController navController;
+
+    // Se true, ignora il prossimo onStop() senza invalidare la sessione.
+    private static boolean ignoreNextPause = false;
 
     public SessionObserver(NavController mainNavController, long timeoutMs) {
         navController = mainNavController;
         sessionTimeoutMs = timeoutMs;
-        timeoutHandler = new Handler(Looper.getMainLooper()); // Un Looper è un oggetto che permette al thread (Runnable) di diventare event-driven tramite MessageQueue. In pratica il Looper estrae i messaggi dalla queue e li esegue. Esiste già un Looper associato al main thread dal framework. Con getMainLooper() lo otteniamo e associamo all'Handler.
-        timeoutRunnable = () -> {
-            // Invalida la sessione per timeout e va all'autenticazione
-            sessionRunning = false;
-            sessionInvalidated = true; // se app è in background navigheremo al ritorno
-            navigateToAuthIfPossible();
-        };
-        inForeground = false;
     }
 
-    /* ─────────────────────────  helper  ───────────────────────── */
 
-    private static void navigateToAuthIfPossible() {
-        if (navController != null && sessionInvalidated) {
-            sessionInvalidated = false;  // evitiamo sdoppiamenti di nav
-            NavOptions opts = new NavOptions.Builder()
-                    .setPopUpTo(com.example.securenotes.R.id.nav_graph, true)
-                    .build();
-            navController.navigate(R.id.auth_nav, null, opts);
-        }
-    }
-
-    /** Avvia – o riavvia dopo login – il timer di SESSIONE. */
+    /**
+     * Da chiamare SOLO dopo un Login (PIN o Biometrico) avvenuto con successo.
+     * Abilita il monitoraggio della sessione.
+     */
     public static void startSession(long timeoutMs) {
         sessionTimeoutMs = timeoutMs;
+        isSessionValid = true;
+        ignoreNextPause = false; // Reset di sicurezza all'avvio
+        resetSessionTimer();
+        Log.d(TAG, "Sessione avviata manualmente. Timeout: " + timeoutMs + "ms");
+    }
+
+    /**
+     * Resetta il timer di inattività.
+     * Deve essere chiamato da MainActivity.onUserInteraction().
+     */
+    public static void resetSessionTimer() {
+        if (!isSessionValid) return; // Non resettare se non siamo loggati
+
+        // Rimuove il callback pendente e ne pianifica uno nuovo
         timeoutHandler.removeCallbacks(timeoutRunnable);
         timeoutHandler.postDelayed(timeoutRunnable, sessionTimeoutMs);
-        sessionRunning = true;
-        sessionInvalidated = false;
     }
 
-    /** Logout manuale / cambio-PIN: interrompe subito la sessione. */
+    public static void updateTimeout(long newTimeoutMs) {
+        sessionTimeoutMs = newTimeoutMs;
+        if (isSessionValid) resetSessionTimer();
+    }
+
+    /**
+     * Forza il logout immediato (es. cambio PIN, timeout, o chiusura app).
+     */
     public static void invalidateSession() {
+        isSessionValid = false;
+        timeoutHandler.removeCallbacks(timeoutRunnable); // Ferma il timer
+        navigateToAuth();
+    }
+
+    /**
+     * Chiama questo metodo PRIMA di lanciare un intent esterno (File Picker da "Esporta Backup cifrato" o "Aggiungi file al Vault").
+     * Impedisce che la sessione venga invalidata quando l'app va in background.
+     */
+    public static void setIgnoreNextPause() {
+        Log.d(TAG, "Il prossimo onStop sarà ignorato.");
+        ignoreNextPause = true;
+    }
+
+    /*Gestione Lifecycle */
+
+    /**
+     * onStart: Scatta quando l'app entra in FOREGROUND (l'utente apre l'app).
+     */
+    @Override
+    public void onStart(@NonNull LifecycleOwner owner) {
+        Log.d(TAG, "App in Foreground (onStart). Stato sessione: " + isSessionValid);
+
+        // se la sessione non è valida (es. invalidata in onStop o mai avviata)
+        // allora forza il ritorno alla schermata di Login.
+        if (!isSessionValid) {
+            navigateToAuth();
+        } else {
+            // Se la sessione è ancora valida, riattiva il timer di inattività
+            resetSessionTimer();
+        }
+    }
+
+    /**
+     * onStop: Scatta quando l'app va in BACKGROUND (Home button, blocco schermo, cambio app).
+     * Qui applichiamo la "Zero Trust": uscita dall'app = sessione chiusa.
+     */
+    @Override
+    public void onStop(@NonNull LifecycleOwner owner) {
+        Log.d(TAG, "App in Background (onStop). Invalidazione sessione.");
+
+        // 1. Ferma il timer di inattività per non consumare risorse in background
         timeoutHandler.removeCallbacks(timeoutRunnable);
-        sessionRunning = false;
-        sessionInvalidated = true;
-        navigateToAuthIfPossible();
-    }
 
-    /** Rimposta (“azzera”) il conto alla rovescia che blocca l’app quando l’utente non interagisce più o quando l’app va in background.
-     * Da chiamare su ogni interazione utente (es. in MainActivity.onUserInteraction()) */
-    public static void resetSessionTimer() {
-        if (timeoutHandler == null) return;
-        timeoutHandler.removeCallbacks(timeoutRunnable); //cancella il vecchio timer
-        timeoutHandler.postDelayed(timeoutRunnable, sessionTimeoutMs); //avvia il nuovo timer
-    }
-
-    @Override
-    public void onActivityStarted(@NonNull Activity activity) {
-
-        if (!inForeground) {
-            inForeground = true; //l'app torna visibile
-            // Se la sessione è invalida, naviga al login
-            if (sessionInvalidated) navigateToAuthIfPossible();
-        }
-    }
-
-    @Override
-    public void onActivityStopped(@NonNull Activity activity) {
-        inForeground=false;
-        if (sessionRunning) {
-            /* App in background → scadenza immediata */
-            timeoutHandler.removeCallbacks(timeoutRunnable);
-            sessionRunning = false;
-            sessionInvalidated = true;
+        // CONTROLLO DEL FLAG per evitare di forzare l'utente al Login quando si torna dal File Picker di sistema (durante l'"Esegui Backup cifrato" e l'aggiunta di un file nel Vault).
+        if (ignoreNextPause) {
+            Log.d(TAG, "Sessione mantenuta attiva per azione esterna autorizzata.");
+            // CONSUMIAMO IL FLAG: La prossima volta deve bloccare.
+            ignoreNextPause = false;
+            // NON invalidiamo la sessione (return)
+            return;
         }
 
+        // 2. Invalida la sessione immediatamente.
+        // Al prossimo rientro (onStart), isSessionValid sarà false e verrà chiesto il PIN.
+        isSessionValid = false;
     }
 
-    // Altri metodi dell'interfaccia (non utilizzati ma devono essere presenti)
-    @Override public void onActivityResumed(@NonNull Activity activity) { }
-    @Override public void onActivityPaused(@NonNull Activity activity) { }
-    @Override public void onActivityCreated(@NonNull Activity activity, Bundle savedInstanceState) { }
-    @Override public void onActivityDestroyed(@NonNull Activity activity) { }
-    @Override public void onActivitySaveInstanceState(@NonNull Activity activity, Bundle outState) { }
+    // Nota: onDestroy, onResume, onPause non sono strettamente necessari per questa logica,
+    // DefaultLifecycleObserver li gestisce di default come vuoti.
+
+    /*Navigazione*/
+
+    private static void navigateToAuth() {
+        if (navController != null) {
+            try {
+                // Controllo per evitare loop se siamo già nel grafo di Auth
+                int currentDestId = (navController.getCurrentDestination() != null)
+                        ? navController.getCurrentDestination().getId()
+                        : -1;
+
+                // Elenco ID delle schermate di Auth dove NON dobbiamo navigare (siamo già lì)
+                // Nota: R.id.loginFragment è in feature_auth, ma gli ID sono unificati nel grafo globale
+                boolean isAuthScreen = (currentDestId == com.example.securenotes.feature_auth.R.id.loginFragment
+                        || currentDestId == com.example.securenotes.feature_auth.R.id.SplashFragment
+                        || currentDestId == com.example.securenotes.feature_auth.R.id.onBoardingFragment
+                        || currentDestId == com.example.securenotes.feature_auth.R.id.createPinFragment);
+
+                if (!isAuthScreen) {//Se non siamo nelle schermate di :feature_auth…
+                    Log.d(TAG, "Eseguo navigazione verso Login.");
+
+                    // Pulisce il backstack (rimuove note/vault) e va al grafo di Auth
+                    NavOptions opts = new NavOptions.Builder()
+                            .setPopUpTo(com.example.securenotes.R.id.nav_graph, true)
+                            .setLaunchSingleTop(true)//controlla se l’auth_nav è già in cima allo stack (in caso ricicla direttamente tale referenza per la navigazione)
+                            .build();
+
+                    navController.navigate(R.id.auth_nav, null, opts);
+                }
+            } catch (Exception e) {
+                // Può capitare se il NavController non è ancora attaccato o l'app sta morendo
+                Log.e(TAG, "Navigazione fallita: " + e.getMessage());
+            }
+        }
+    }
 }

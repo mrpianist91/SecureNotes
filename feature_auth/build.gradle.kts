@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.androidx.navigation.safeargs)
 }
 android {
     namespace = "com.example.securenotes.feature_auth" // Assicurarsi che il namespace sia univoco
@@ -24,8 +25,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
     buildFeatures {
-        /*L'abilitazione del ViewBinding è una scelta moderna e sicura per interagire con le view
-         definite in XML. Elimina la necessità di findViewById, prevenendo NullPointerException
+        /*L'abilitazione del ViewBinding elimina la necessità di findViewById, prevenendo NullPointerException
          e garantendo la type safety in fase di compilazione.*/
         viewBinding = true // Abilita ViewBinding per semplificare l'accesso alle view
     }

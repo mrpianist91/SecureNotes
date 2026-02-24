@@ -1,12 +1,14 @@
 <resources>
     <string name="app_name">SecureNotes</string>
-    <!-- Empty state -->
     <string name="no_notes">Nessuna nota</string>
     <string name="title">Titolo</string>
     <string name="tag">Tag</string>
     <string name="note_body_hint">Nota</string>
     <string name="note_body">Contenuto Nota</string>
     <string name="tempo_note_24h">Nota temporanea (autodistrugge in 24h)</string>
+    <string name="btn_bold">B</string>
+    <string name="btn_italic">I</string>
+    <string name="btn_underline">U</string>
 
 
     <!-- TODO: Remove or change this placeholder text -->

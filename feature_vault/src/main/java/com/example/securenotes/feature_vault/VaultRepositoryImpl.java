@@ -50,7 +50,7 @@ public class VaultRepositoryImpl implements VaultRepository {
                 //Quando fai una query() al ContentResolver per avere info su un file, lui non ti ridà un oggetto "File", ma ti ridà un Cursor. Il Cursor è letteralmente un puntatore che scorre sopra le righe di una tabella virtuale dei risultati (in Android qualsiasi fonte di dati viene trattata come se fosse un DB relazionale).
                 String fileName = "unknown_file";//stringa di destinazione
                 try (Cursor cursor = context.getContentResolver().query(sourceUri, null, null, null, null)) {
-                    if (cursor != null && cursor.moveToFirst()) {//il Cursore è inizialmente posizionato prima della prima riga (indice -1). Dobbiamo dire moveToFirst() per dirgli: "Spostati sulla riga 0"
+                    if (cursor != null && cursor.moveToFirst()) {//il Cursor(e) è inizialmente posizionato prima della prima riga (indice -1). Dobbiamo dire moveToFirst() per dirgli di spostarsi sulla riga 0"
                         int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);//OpenableColumns.DISPLAY_NAME è una costante standard di Android che contiene il nome della colonna (una stringa, solitamente _display_name) dove il Content Provider memorizza il nome del file
                         if(index >= 0) fileName = cursor.getString(index);
                     }
@@ -95,7 +95,7 @@ public class VaultRepositoryImpl implements VaultRepository {
 
                 vaultDao.insertVaultFile(vf);//INSERT
 
-                // FIX: Notifica completamento su Main Thread
+                // Notifica completamento su Main Thread
                 if (listener != null) mainHandler.post(listener::onComplete);
 
             } catch (Exception e) {
@@ -151,9 +151,9 @@ public class VaultRepositoryImpl implements VaultRepository {
                 }
 
                 // 4. Genera URI (speciale) sicuro tramite FileProvider...NB Non passiamo all'app esterna il percorso fisico (/data/user/0/.../vault_temp/file.pdf). Le app moderne non hanno il permesso di leggere i file privati le une delle altre.
-                // Il provider authority (secondo argomento di .getUriForFile()) deve corrispondere a quello nel Manifest...è il nome del dominio del provider (es. com.example.securenotes.provider) Quando passi l'URI a un'altra app (es. il PDF Viewer), l'URI sarà: content://com.example.securenotes.provider/vault_temp/miofile.pdf.
-                // Quando il PDF Viewer prova ad aprirlo, il sistema Android controlla l'authority (com.example.securenotes.provider), capisce che appartiene alla TUA app, e verifica se tu hai concesso il permesso (FLAG_GRANT_READ_URI_PERMISSION). Se l'authority non combacia tra codice e Manifest, il sistema non trova il "garante" del file e lancia un crash (SecurityException).
-                Uri uri = /*androidx.core.content.*/FileProvider.getUriForFile(context, context.getPackageName() + ".provider", tempFile); // Permetti all'app che riceve questo Intent (es. il PDF Viewer) di leggere questo specifico "tempfile", ma solo per questa volta
+                // Il provider authority (secondo argomento di .getUriForFile()) deve corrispondere a quello nel Manifest...è il nome del dominio del provider (es. com.example.securenotes.provider). Quando si passa l'URI a un'altra app (es. il PDF Viewer), l'URI sarà: content://com.example.securenotes.provider/vault_temp/miofile.pdf.
+                // Quando il PDF Viewer prova ad aprirlo, il sistema Android controlla l'authority (com.example.securenotes.provider), capisce che appartiene alla TUA app, e verifica se tu hai concesso il permesso (FLAG_GRANT_READ_URI_PERMISSION). Se l'authority non combacia tra codice e Manifest, il sistema crasha (SecurityException).
+                Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".provider", tempFile); // Permetti all'app che riceve questo Intent (es. il PDF Viewer) di leggere questo specifico "tempfile", ma solo per questa volta
 
                 // Callback su Main Thread
                 mainHandler.post(() -> listener.onDecrypted(uri));

@@ -23,4 +23,8 @@ public interface VaultDao {
 
     @Query("SELECT * FROM vault_files WHERE id = :id LIMIT 1")
     VaultFile getFileById(String id);
+
+    @Query("SELECT * FROM vault_files")
+    List<VaultFile> getAllFilesSync();
+
 }

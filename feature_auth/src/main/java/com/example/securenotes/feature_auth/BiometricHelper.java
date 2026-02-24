@@ -26,7 +26,7 @@ import javax.crypto.spec.IvParameterSpec;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Log;
-
+//CLASSE DA ELIMINARE...ASSOLUTAMENTE ININFLUENTE! MORTA!!!!!!!!!
 public class BiometricHelper {
     // Stato che il chiamante userà per decidere cosa fare:
 // - AVAILABLE: biometria presente+configurata e chiave pronta (o creata ora)

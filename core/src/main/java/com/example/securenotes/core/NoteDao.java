@@ -19,6 +19,9 @@ public interface NoteDao {
     void deleteNoteById(String id);
     @Query("SELECT * FROM notes WHERE id = :id")
     Note getNoteById(String id);
+    @Query("SELECT * FROM notes")
+    List<Note> getAllNotesSync();
+
 
     // Query filtrata per tag e testo di ricerca (ricerca anche nell'HTML del body)
     @Query("SELECT * FROM notes " +

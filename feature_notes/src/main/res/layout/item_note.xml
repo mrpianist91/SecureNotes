@@ -8,7 +8,7 @@
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground">
-    <!-- Usando MaterialCardView per supportare effetti Material
+    <!-- Usiamo MaterialCardView per supportare effetti Material
     (evidenziazione all’interazione) -->
     <LinearLayout
         android:orientation="vertical"
@@ -16,7 +16,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- Titolo della nota -->
+        <!-- Titolo della nota
+         ellipsize aggiunge i "..." se il testo non rientra nello spazio disponibile-->
         <TextView
             android:id="@+id/textTitle"
             style="?attr/textAppearanceBodyLarge"

@@ -1,6 +1,7 @@
 package com.example.securenotes.feature_auth;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -28,6 +29,7 @@ import androidx.navigation.NavOptions;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.securenotes.core.AppDatabase;
+import com.example.securenotes.core.AuthManager;
 import com.example.securenotes.core.SecurityUtils;
 import com.example.securenotes.feature_auth.databinding.FragmentLoginBinding;
 import com.scottyab.rootbeer.RootBeer;  // Libreria per rilevare il root (aggiungere dipendenza RootBeer)
@@ -44,6 +46,29 @@ public class LoginFragment extends Fragment {
     private Handler handler = new Handler(Looper.getMainLooper());
     private CountDownTimer lockTimer;
 
+    // Callback verso l'Activity per notificare il successo del login al SessionObserver.
+    private AuthListener authListener;
+    //onAttach(Context context) è il primo metodo del ciclo di vita del Fragment a essere invocato.
+    // Il Fragment viene associato al suo Host (l'Activity). Il parametro context passato dal sistema è l'Activity ospitante.
+    //onAttach() rappresenta l'inizializzazione delle dipendenze esterne (il genitore), mentre onCreate dovrebbe occuparsi dell'inizializzazione dello stato interno del Fragment (variabili, ViewModel, ecc.).
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        // Recupera il listener della (Main)Activity (context) ospitante per poter notificare il successo del processo di autenticazione al Main
+        if (context instanceof AuthListener) {
+            authListener = (AuthListener) context;//la MainActivity implementa l’interface AuthListener
+        } else {
+            throw new RuntimeException(context.toString() + " deve implementare AuthListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        authListener = null; // Evita memory leaks
+    }
+
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentLoginBinding.inflate(inflater, container, false);
@@ -55,11 +80,18 @@ public class LoginFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         authViewModel = new ViewModelProvider(requireActivity()).get(AuthViewModel.class);
         Log.d("LoginFragment", "VM id=" + System.identityHashCode(authViewModel));
-        // Se esiste già un lock persistito (da tentativi precedenti), riflettilo subito in UI
+        // Se esiste già un lock (da tentativi precedenti), riflettiamolo subito in UI
         startLockCountdown(authViewModel.getLockRemainingMillis());
-        // Controllo di sicurezza: blocca l'accesso se il dispositivo è rootato
+        // Controllo di sicurezza: blocca l'accesso se il dispositivo è rootato.
+        // Usiamo solo i check ad alta affidabilità per evitare falsi positivi
+        // - detectRootManagementApps: app di root presenti (SuperSU, Magisk Manager, ecc.)
+        // - checkForMagiskBinary: binary di Magisk rilevato
+        // - checkSuExists: SU esistente/attivo
         RootBeer rootBeer = new RootBeer(requireContext());
-        if (rootBeer.isRooted()) {
+        boolean isRooted = rootBeer.detectRootManagementApps()
+                || rootBeer.checkForMagiskBinary()
+                || rootBeer.checkSuExists();
+        if (isRooted) {
             new AlertDialog.Builder(requireContext())
                     .setTitle("Dispositivo non sicuro")
                     .setMessage("Il dispositivo risulta rootato. L'app verrà chiusa per motivi di sicurezza.")
@@ -103,6 +135,8 @@ public class LoginFragment extends Fragment {
                            // Apre il database cifrato con la passphrase ottenuta
                             AppDatabase.openWithPassphrase(requireContext(), passphrase);
                             SecurityUtils.zeroize(passphrase); // Pulisce la passphrase dopo l'uso
+                            //Notifica successo PIN per l'Observer
+                            notifyLoginSuccess();
                         }
                     } catch (GeneralSecurityException e) {
                         Toast.makeText(requireContext(), "Errore decrittazione database", Toast.LENGTH_LONG).show();
@@ -111,33 +145,34 @@ public class LoginFragment extends Fragment {
                     }
                 }
                 // Naviga alla schermata principale (lista note), rimuovendo le schermate di auth dallo stack
-                NavController nav = NavHostFragment.findNavController(LoginFragment.this);
-                nav.navigate(R.id.action_loginFragment_to_notesListFragment);
+                //NavController nav = NavHostFragment.findNavController(LoginFragment.this);
+                //nav.navigate(R.id.action_loginFragment_to_notesListFragment);
             } else if (result == AuthViewModel.LoginResult.LOCKED) {
                 // lock con durata variabile, basato su KEY_LOCK_UNTIL
                 startLockCountdown(authViewModel.getLockRemainingMillis());
             } else if (result == AuthViewModel.LoginResult.INCORRECT_PIN) {
                 // PIN errato
                 Toast.makeText(requireContext(), "PIN errato", Toast.LENGTH_SHORT).show();
-                // (Opzionale) Si potrebbe indicare il numero di tentativi rimanenti
+
             }
         });
 
         // Gating iniziale: prova lo sblocco BIOMETRICO solo se:
-        // 1) l'hardware è disponibile e 2) ESISTE una busta DB biometrica salvata.
+        // 1) l'hardware è disponibile e 2) ESISTE l'envelop biometrico del DB salvato.
         BiometricManager biometricManager = BiometricManager.from(requireContext());
         boolean bioAvailable = (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 == BiometricManager.BIOMETRIC_SUCCESS);
+        //Controlliamo il flag in AuthManager
+        boolean isEnabledInSettings = AuthManager.getInstance(requireContext()).isBiometricEnabled();
         boolean hasBioWrap = SecurityUtils.hasBioWrap(requireContext());
-        if (bioAvailable && hasBioWrap) {
-            showBiometricPromptForDbUnlock();          // prompt con decrypt della busta BIO
+        if (bioAvailable && isEnabledInSettings && hasBioWrap) {
+            showBiometricPromptForDbUnlock();          // prompt con decrypt dell'envelop biometrico
             binding.pinGroup.setVisibility(View.GONE); // nasconde PIN finché non serve
             binding.btnUsePin.setVisibility(View.VISIBLE);
         } else {
-            // Nessuna busta BIO o hardware non disponibile → vai subito di PIN
-            binding.tvStatus.setText(getString(R.string.login_title));
-            binding.pinGroup.setVisibility(View.VISIBLE);
-            binding.btnUsePin.setVisibility(View.GONE);
+            // Nessun envelop bio o hardware non disponibile → vai di PIN
+           showPinLoginUI();
+
         }
 
         // Pulsante "Usa PIN" (fallback esplicito dall'utente)
@@ -163,12 +198,12 @@ public class LoginFragment extends Fragment {
 
 
     /**
-     +     * Mostra il BiometricPrompt per lo sblocco della BUSTA DB BIOMETRICA. Su successo emette l'evento di nav via VM.
-     +     * Se l'utente annulla o c'è un errore → fallback immediato al PIN.
-     +     */
+     * Mostra il BiometricPrompt per lo sblocco dell'envelop biometrico del DB. Su successo emette l'evento di nav via VM.
+     * Se l'utente annulla o c'è un errore → fallback immediato al PIN.
+     */
     private void showBiometricPromptForDbUnlock() {
         try {
-            // Carica (IV, CT) della busta biometrica salvata
+            // Carica (IV, CT) dell'envelop biometrico salvata
             Pair<byte[], byte[]> wrap = SecurityUtils.loadWrappedDbWithBiometrics(requireContext());
             if (wrap == null || wrap.first == null || wrap.second == null) {
                 showPinLoginUI();
@@ -176,9 +211,13 @@ public class LoginFragment extends Fragment {
             }
             byte[] iv = wrap.first;
             byte[] ct = wrap.second;
-            // Cipher in DECRYPT_MODE con l'IV corretto (stessa chiave Keystore del provisioning)
-            BiometricHelper.ensureBiometricKey(requireContext());
-            final Cipher dec = BiometricHelper.getDecryptCipher(iv);
+
+
+
+            // Otteniamo il Cipher da AuthManager
+            // Questo metodo lancia KeyPermanentlyInvalidatedException se sono state aggiunte impronte!
+            final Cipher dec = AuthManager.getInstance(requireContext()).getBiometricDecryptCipher(iv);
+
             BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
                     .setTitle(getString(R.string.biometric_prompt_title))
                     .setSubtitle(getString(R.string.biometric_prompt_message))
@@ -195,14 +234,13 @@ public class LoginFragment extends Fragment {
                             showPinLoginUI();
                             return;
                         }
-                        // Decifra la passphrase DB; qui la userai per aprire il DB se necessario
+                        // Decifra la passphrase DB; si userà per aprire il DB
                         byte[] pass = armed.doFinal(ct);
                         // Apre il database cifrato con SQLCipher (istanza singleton)
                         AppDatabase.openWithPassphrase(requireContext(), pass);
-                        SecurityUtils.zeroize(pass); // se non la usi qui, azzera per sicurezza
-                        // Naviga avanti (lo stack auth viene pulito dall'action nel grafo)
-                        NavController nav = NavHostFragment.findNavController(LoginFragment.this);
-                        nav.navigate(R.id.action_loginFragment_to_notesListFragment);
+                        SecurityUtils.zeroize(pass); //azzera per sicurezza
+                        //Notifica successo Biometrico
+                        notifyLoginSuccess();
                     } catch (GeneralSecurityException e) {
                         Toast.makeText(requireContext(), R.string.bio_generic_crypto_error, Toast.LENGTH_SHORT).show();
                         showPinLoginUI();
@@ -224,10 +262,39 @@ public class LoginFragment extends Fragment {
                 }
             }
             ).authenticate(info, new BiometricPrompt.CryptoObject(dec));
+        } catch (android.security.keystore.KeyPermanentlyInvalidatedException e) {
+
+            //GESTIONE SICUREZZA "EVIL MAID" (attacco della "ragazza gelosa")
+            Log.e("LoginFragment", "Chiave invalidata: nuove impronte rilevate.", e);
+
+            // 1. Disabilita la biometria nell'app (la chiave crittografica è persa per sempre)
+            AuthManager.getInstance(requireContext()).setBiometricEnabled(false);
+
+            // 2. Avvisa l'utente
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Sicurezza Biometrica")
+                    .setMessage("Sono state rilevate nuove impronte digitali nelle impostazioni del dispositivo. " +
+                            "Per sicurezza, l'accesso biometrico è stato disattivato. Accedi con il PIN.")
+                    .setPositiveButton("OK", (d, w) -> showPinLoginUI())
+                    .setCancelable(false)
+                    .show();
+
         } catch (Exception e) {
-            // Qualsiasi problema di setup → fai fallback al PIN
+            Log.e("LoginFragment", "Errore setup biometria", e);
             showPinLoginUI();
         }
+    }
+
+    /** Helper centralizzato per gestire il successo del login */
+    private void notifyLoginSuccess() {
+        // 1. Notifica l'Activity (che avvierà SessionObserver)
+        if (authListener != null) {
+            authListener.onAuthSuccess();
+        }
+
+        // 2. Naviga alla schermata Note, rimuovendo le schermate di auth dallo stack
+        NavController nav = NavHostFragment.findNavController(LoginFragment.this);
+        nav.navigate(R.id.action_loginFragment_to_notesListFragment);
     }
 
 
@@ -253,13 +320,12 @@ public class LoginFragment extends Fragment {
         if (remainingMs <= 0L) {
             // Nessun lock attivo: UI pronta
             enablePinInputs(true);
-            // (Mantieni lo status corrente; se preferisci, reimposta il titolo standard)
             return;
         }
         enablePinInputs(false);
         // Mostra subito lo stato iniziale arrotondato ai secondi
         long initialSec = (remainingMs + 999) / 1000;
-        // Riusa la tua stringa esistente con %d (es. "Troppi tentativi. Riprova tra %1$d s.")
+        // Riusa la stringa esistente con %d (es. "Troppi tentativi. Riprova tra %1$d s.")
         binding.tvStatus.setText(getString(R.string.error_too_many_attempts, initialSec));
         lockTimer = new CountDownTimer(remainingMs, 1000L) {
             @Override public void onTick(long msLeft) {
@@ -275,11 +341,7 @@ public class LoginFragment extends Fragment {
     }
 
     /** Cancella il prompt biometrico se attivo (ad esempio quando l'utente passa a PIN) */
-    private void cancelBiometricPrompt() {
-        // BiometricPrompt di Android si chiude automaticamente quando l'utente preme "Usa PIN" o esce,
-        // quindi in genere non è necessario annullarlo manualmente.
-        // Questa funzione può rimanere vuota o gestire un CancellationSignal se implementato.
-    }
+    private void cancelBiometricPrompt() {}
 
     @Override
     public void onResume() {

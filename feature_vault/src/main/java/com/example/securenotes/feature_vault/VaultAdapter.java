@@ -42,19 +42,20 @@ public class VaultAdapter extends ListAdapter<VaultFile, VaultAdapter.ViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(getItem(position));
+        holder.bind(getItem(position));//.bind() è un metodo definito da me sotto
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
         private final ItemVaultFileBinding binding;
-        // Formatter per la data (creato una volta sola per efficienza)
+        // Formatter per la data
         private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
 
         ViewHolder(ItemVaultFileBinding binding) {
-            super(binding.getRoot());
+            super(binding.getRoot());//binding.getRoot()=itemView è la ConstraintLayout dell'item_vault_file
             this.binding = binding;
 
-            // Gestione Click nel costruttore (Best Practice)
+            // Gestione Click nel costruttore
+            //NB itemView è la stessa cosa di binding.getRoot(). E' la ConstraintLayout dell'item_vault_file
             itemView.setOnClickListener(v -> {
                 int pos = getAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION) {
@@ -81,7 +82,7 @@ public class VaultAdapter extends ListAdapter<VaultFile, VaultAdapter.ViewHolder
                 typeText = file.mimeType.toUpperCase();
             }
 
-            // Setta "Data • TIPO" (Rimossa la dimensione che non esiste nell'Entity)
+            // Setta "Data - TIPO" (Rimossa la dimensione che non esiste nell'Entity)
             binding.tvFileDetails.setText(context.getString(R.string.vault_file_details_format, dateText, typeText));
         }
     }
@@ -89,7 +90,7 @@ public class VaultAdapter extends ListAdapter<VaultFile, VaultAdapter.ViewHolder
     static class DiffCallback extends DiffUtil.ItemCallback<VaultFile> {
         @Override
         public boolean areItemsTheSame(@NonNull VaultFile oldItem, @NonNull VaultFile newItem) {
-            // CRUCIALE: id è String, quindi si usa .equals(), non ==
+            // id è String, quindi si usa .equals(), non ==
             return oldItem.id.equals(newItem.id);
         }
 
