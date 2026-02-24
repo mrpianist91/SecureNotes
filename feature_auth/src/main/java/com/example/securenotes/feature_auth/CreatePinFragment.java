@@ -61,7 +61,7 @@ public class CreatePinFragment extends Fragment {
         binding = FragmentCreatePinBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
-
+    //update del button "Crea Pin" (a seconda della bontà del PIN inserito)
     private void updateCreatePinEnabled() {
         String pin = binding.etPin.getText().toString().trim();
         String confirm = binding.etConfirmPin.getText().toString().trim();
@@ -282,7 +282,8 @@ public class CreatePinFragment extends Fragment {
             Arrays.fill(pinKey, (byte)0);
             SecurityUtils.saveWrappedDbWithPin(requireContext(), salt, pinWrap.first, pinWrap.second);
 
-            //Otteniamo il Cipher da AuthManager invece che da BiometricHelper
+            //Otteniamo il Cipher da AuthManager invece che da BiometricHelper...
+            //Lo passeremo al comando che fa scattare il BiometricPrompt (la richiesta all'utente di usare la biometria)
             Cipher enc = AuthManager.getInstance(requireContext()).getBiometricEncryptCipher();
             // 3) Costruisci il BiometricPrompt: le callback arrivano sul main thread (executor compat).
             BiometricPrompt prompt = new BiometricPrompt(

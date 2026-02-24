@@ -66,7 +66,7 @@ public class VaultFragment extends Fragment {
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                    viewModel.importFile(result.getData().getData());
+                    viewModel.importFile(result.getData().getData());//URI del file scelto dall'utente
                 }
                 //Al ritorno, onStart() del SessionObserver troverà la sessione ancora valida (perché non invalidata in onStop) e riprenderà il timer.
             }
@@ -98,9 +98,9 @@ public class VaultFragment extends Fragment {
     private void setupGatekeeper() {
         if (!viewModel.isUnlocked()) {//!isUnlocked
             lockUiState(); // Stato iniziale: Tutto nascosto tranne Biometria/Bottone PIN
-            // Avvio automatico del prompt biometrico per UX fluida
+            // Avvio automatico del prompt biometrico
             launchBiometricAuth();
-        } else {//questo ramo sussiste nel caso l'utente, dopo aver già sbloccato il vault passasse ad un altro tab (note/settings) e poi tornasse al vault.
+        } else {//questo ramo sussiste nel caso l'utente, dopo aver già sbloccato il vault passasse ad un altro tab (note/settings) e poi tornasse al vault. OPPURE dopo rotazione schermo
 
             unlockUiState();
         }
@@ -241,7 +241,9 @@ public class VaultFragment extends Fragment {
         binding.authLayer.setVisibility(View.GONE);
         binding.contentLayer.setVisibility(View.VISIBLE);
     }
-
+//Viene chiamato in due casi:
+// 1) dopo l'autenticazione per accedere al Vault...non serve più la tastiera
+// 2) nel caso si prema il bottone "Annulla" prima del popBackstack che ci riporta alle note o ai settings
     private void hideKeyboard() {
         View view = getView();
         if (view != null) {
@@ -278,7 +280,7 @@ public class VaultFragment extends Fragment {
             }
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("*/*");
+            intent.setType("*/*");//dice al file picker quali tipi di file mostrare all'utente. Con "*/*" diciamo di mostrare tutto.
             filePickerLauncher.launch(intent);
         });
     }
@@ -311,6 +313,7 @@ public class VaultFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        //ripuliamo la cartella nella cache temporanea cui abbiamo dato accesso ad un'app esterna
         VaultRepository.clearTempCache(requireContext());
         binding = null;
     }

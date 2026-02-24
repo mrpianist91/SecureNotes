@@ -23,7 +23,7 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
     private final OnNoteClickListener clickListener;
     private List<Note> notes = new ArrayList<>();
 
-    //NB notesListFragment implementa l’interfaccia NoteAdapter.OnNoteClickListener.
+    //NB notesListFragment implementa (implements) l’interfaccia NoteAdapter.OnNoteClickListener.
     //Infatti dentro notesListFragment viene passato “this” come argomento dell’istanza di NoteAdapter
     public NoteAdapter(OnNoteClickListener clickListener) {
         this.clickListener = clickListener;
@@ -61,7 +61,7 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         if (note.expiresAt != 0) {//se nota temporanea..mettiamo l’icona dell’orologio
             holder.tagChip.setChipIcon(ContextCompat.getDrawable(holder.tagChip.getContext(), R.drawable.ic_clock));
             holder.tagChip.setChipIconVisible(true);
-        } else {//se l'icona è temporanea...
+        } else {//se l'icona NON è temporanea...
             /*Importante: non nascondono l’intero Chip. Nascondono solo l’icona dell’orologio. Il testo del tag resta visibile!
               Dal punto di vista visivo, se la nota è temporanea: Chip con testo del tag + icona orologio (tinta coerente col tema).
               Se è non temporanea: Chip con solo testo del tag; nessun rientro “fantasma” perché l’icona è nulla e chipIconVisible è false.*/
@@ -81,6 +81,7 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
     public int getItemCount() {
         return notes != null ? notes.size() : 0;
     }
+
     //La classe NoteViewHolder è definita dentro NoteAdapter
     static class NoteViewHolder extends RecyclerView.ViewHolder {
         final TextView titleText;

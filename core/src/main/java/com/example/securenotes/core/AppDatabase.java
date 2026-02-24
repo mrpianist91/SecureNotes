@@ -33,6 +33,7 @@ public abstract class AppDatabase extends RoomDatabase {
                 .openHelperFactory(factory)
                 .fallbackToDestructiveMigration()
                 .build();
+
         zeroize(passphrase);
     }
 

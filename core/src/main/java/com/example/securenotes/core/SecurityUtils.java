@@ -229,10 +229,10 @@ public final class SecurityUtils {
         SharedPreferences p = getEncryptedPrefs(ctx);
         boolean hasBio = hasBioWrap(ctx);
         p.edit()
-                .putString(DB_WRAP_SALT_PIN, Base64.encodeToString(salt, Base64.NO_WRAP)) //Salt del Pin
+                .putString(DB_WRAP_SALT_PIN, Base64.encodeToString(salt, Base64.NO_WRAP)) //Salt del Pin per il wrapping
                 .putString(DB_WRAP_IV_PIN, Base64.encodeToString(iv, Base64.NO_WRAP)) //IV con cui cifriamo/decifriamo la masterkey del DB
                 .putString(DB_WRAP_CT_PIN, Base64.encodeToString(ct, Base64.NO_WRAP)) //masterkey (del DB) cifrata con la chiave derivata dal PIN
-                .putString(DB_WRAP_METHOD, hasBio ? "both" : "pin")
+                .putString(DB_WRAP_METHOD, hasBio ? "both" : "pin")//codice morto
                 .apply();
     }
 
@@ -243,7 +243,7 @@ public final class SecurityUtils {
         p.edit()
                 .putString(DB_WRAP_IV_BIO, Base64.encodeToString(iv, Base64.NO_WRAP))//IV per cifrare/decifrare la masterkey cifrata del DB
                 .putString(DB_WRAP_CT_BIO, Base64.encodeToString(ct, Base64.NO_WRAP))//Masterkey (cifrata tramite Biometria) del DB
-                .putString(DB_WRAP_METHOD, hasPin ? "both" : "bio")
+                .putString(DB_WRAP_METHOD, hasPin ? "both" : "bio")//codice morto
                 .apply();
     }
 

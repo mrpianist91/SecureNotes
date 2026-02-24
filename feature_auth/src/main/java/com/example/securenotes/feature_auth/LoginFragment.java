@@ -320,13 +320,12 @@ public class LoginFragment extends Fragment {
         if (remainingMs <= 0L) {
             // Nessun lock attivo: UI pronta
             enablePinInputs(true);
-            // (Mantieni lo status corrente; se preferisci, reimposta il titolo standard)
             return;
         }
         enablePinInputs(false);
         // Mostra subito lo stato iniziale arrotondato ai secondi
         long initialSec = (remainingMs + 999) / 1000;
-        // Riusa la tua stringa esistente con %d (es. "Troppi tentativi. Riprova tra %1$d s.")
+        // Riusa la stringa esistente con %d (es. "Troppi tentativi. Riprova tra %1$d s.")
         binding.tvStatus.setText(getString(R.string.error_too_many_attempts, initialSec));
         lockTimer = new CountDownTimer(remainingMs, 1000L) {
             @Override public void onTick(long msLeft) {

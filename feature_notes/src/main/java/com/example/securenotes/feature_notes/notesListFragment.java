@@ -51,7 +51,7 @@ public class notesListFragment extends Fragment implements NoteAdapter.OnNoteCli
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 
         super.onViewCreated(view, savedInstanceState);
-        // Inizializzazione dipendenze (in un’app reale usare DI/Hilt)
+        // Inizializzazione dipendenze
         // Ottiene database esistente (DB già aperto nel LoginFragment)
         NoteDao noteDao = AppDatabase.getInstance().noteDao();
         NoteRepository repository = new NoteRepositoryImpl(noteDao);

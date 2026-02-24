@@ -135,10 +135,10 @@ public class AuthManager {
 
     // Torna il Cipher (cifrario/cifratore) per Cifratura (Setup/Wrap)
     public Cipher getBiometricEncryptCipher() throws Exception {
-        ensureBiometricKey();//Assicura che esista la chiave biometrica.
+        ensureBiometricKey();//Crea la chiave biometrica "SecureNotes_Bio" nell'AndroidKeystore.
         KeyStore ks = KeyStore.getInstance(KEYSTORE_PROVIDER);
         ks.load(null);
-        //Otteniamo un riferimento chiave dell'AndroidKeyStore
+        //Otteniamo un riferimento alla chiave "SecureNotes_Bio" dell'AndroidKeyStore
         SecretKey key = (SecretKey) ks.getKey(BIOMETRIC_KEY_ALIAS, null);
         Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
         c.init(Cipher.ENCRYPT_MODE, key);
@@ -204,7 +204,7 @@ public class AuthManager {
             // API 30+: Apre direttamente la registrazione biometrica
             Intent intent = new Intent(Settings.ACTION_BIOMETRIC_ENROLL);
 //Specifichiamo che l’unico tipo di enrollment biometrico (attivazione del fingerprint) potrà essere eseguito (è ALLOWED=consentito) solo se tale sistema è di tipo BIOMETRIC_STRONG
-            intent.putExtra(Settings.EXTRA_BIOMETRIC_AUTHENTICATORS_ALLOWED,                    android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG);
+            intent.putExtra(Settings.EXTRA_BIOMETRIC_AUTHENTICATORS_ALLOWED, android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_STRONG);
 
             return intent;
         } else {

@@ -100,7 +100,7 @@ public class SettingsViewModel extends AndroidViewModel {
             }
         };
 
-        // NEW: Attiva l'osservazione "Forever" (poiché siamo nel ViewModel e non abbiamo un LifecycleOwner View)
+        // Attiva l'osservazione "Forever" (poiché siamo nel ViewModel e non abbiamo un LifecycleOwner View)
         // Usiamo il tag univoco "backup_unique" che definiremo nel triggerBackup
         workManager.getWorkInfosForUniqueWorkLiveData("backup_unique").observeForever(backupObserver);
     }

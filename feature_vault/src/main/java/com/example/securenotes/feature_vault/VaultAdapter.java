@@ -42,7 +42,7 @@ public class VaultAdapter extends ListAdapter<VaultFile, VaultAdapter.ViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(getItem(position));
+        holder.bind(getItem(position));//.bind() è un metodo definito da me sotto
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
@@ -51,10 +51,11 @@ public class VaultAdapter extends ListAdapter<VaultFile, VaultAdapter.ViewHolder
         private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
 
         ViewHolder(ItemVaultFileBinding binding) {
-            super(binding.getRoot());
+            super(binding.getRoot());//binding.getRoot()=itemView è la ConstraintLayout dell'item_vault_file
             this.binding = binding;
 
             // Gestione Click nel costruttore
+            //NB itemView è la stessa cosa di binding.getRoot(). E' la ConstraintLayout dell'item_vault_file
             itemView.setOnClickListener(v -> {
                 int pos = getAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION) {

@@ -265,7 +265,7 @@ public class AuthViewModel extends AndroidViewModel {
      *  oppure stringa vuota se il PIN è accettabile (strength ≥ 60). */
     public String getPinHint(@NonNull String pin) {
         final int len = pin.length();
-        if (len < 2) return ""; // Con una sola cifra i flag allSame/ascending/descending sarebbero trivialmente true
+        if (len < 2) return ""; // Con una sola cifra i flag allSame/ascending/descending sarebbero banalmente true
 
         boolean allSame = true, ascending = true, descending = true;
         boolean[] seen = new boolean[10];
